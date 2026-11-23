@@ -1,0 +1,1408 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Atlas 3D · El sujeto de la ciencia</title>
+<meta name="description" content="Modelos topológicos, cortes y experimentos animados que acompañan el libro El sujeto de la ciencia. Lógica, topología y estructura en la enseñanza de Lacan.">
+<style>
+:root{--bg:#05060f;--ink:#eef0ff;--dim:rgba(225,230,255,.64);--line:rgba(255,255,255,.12);--glass:rgba(12,14,34,.72);--gold:#e8c46a;--acc:#7fd8ff;
+--serif:"Iowan Old Style","Palatino Linotype",Palatino,"Book Antiqua",Georgia,serif;--sans:Inter,"Helvetica Neue","Segoe UI",Roboto,Arial,sans-serif}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;height:100%;background:var(--bg);color:var(--ink);font-family:var(--sans);overflow:hidden;overscroll-behavior:none}
+#stage{position:fixed;inset:0}
+#gl,#ov{position:absolute;inset:0;width:100%;height:100%;display:block}
+#ov{pointer-events:none}
+#stage{touch-action:none;cursor:grab}#stage.drag{cursor:grabbing}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
+.glass{background:var(--glass);backdrop-filter:blur(14px) saturate(1.3);-webkit-backdrop-filter:blur(14px) saturate(1.3);border:1px solid var(--line)}
+#head{position:fixed;left:max(18px,env(safe-area-inset-left));top:max(14px,env(safe-area-inset-top));right:150px;pointer-events:none;z-index:3}
+#brand{font-size:11px;letter-spacing:.22em;text-transform:uppercase;color:var(--gold);font-weight:600;opacity:.9}
+#title{font-family:var(--serif);font-size:clamp(22px,3.2vw,38px);line-height:1.08;margin:6px 0 0;font-weight:500;text-shadow:0 2px 24px #000}
+#sub{font-size:13px;color:var(--dim);margin-top:6px;letter-spacing:.02em}
+#tools{position:fixed;right:max(14px,env(safe-area-inset-right));top:max(12px,env(safe-area-inset-top));display:flex;gap:8px;z-index:4}
+.ib{width:42px;height:42px;border-radius:14px;display:grid;place-items:center;transition:background .2s,transform .1s}
+.ib:hover{background:rgba(255,255,255,.08)}.ib:active{transform:scale(.94)}
+.ib svg{width:20px;height:20px;stroke:currentColor;fill:none;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+#dock{position:fixed;left:50%;transform:translateX(-50%);bottom:max(12px,env(safe-area-inset-bottom));width:min(980px,calc(100% - 20px));border-radius:22px;padding:10px 12px 12px;z-index:4}
+#views{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;padding:2px 2px 8px}#views::-webkit-scrollbar{display:none}
+.chip{flex:0 0 auto;padding:8px 14px;border-radius:999px;font-size:13px;font-weight:600;color:var(--dim);border:1px solid var(--line);white-space:nowrap;transition:all .2s}
+.chip.on{color:#0a0b18;background:linear-gradient(135deg,#ffe39a,#e8b04a);border-color:transparent;box-shadow:0 4px 22px rgba(232,196,106,.35)}
+#tl{display:flex;align-items:center;gap:10px}
+#play{width:40px;height:40px;border-radius:50%;background:rgba(255,255,255,.1);display:grid;place-items:center;flex:0 0 auto}
+#play svg{width:18px;height:18px;fill:currentColor;stroke:none}
+#scrub{flex:1;-webkit-appearance:none;appearance:none;height:28px;background:transparent}
+#scrub::-webkit-slider-runnable-track{height:4px;border-radius:4px;background:linear-gradient(90deg,var(--gold) var(--p,0%),rgba(255,255,255,.18) var(--p,0%))}
+#scrub::-moz-range-track{height:4px;border-radius:4px;background:rgba(255,255,255,.18)}#scrub::-moz-range-progress{height:4px;background:var(--gold)}
+#scrub::-webkit-slider-thumb{-webkit-appearance:none;width:16px;height:16px;border-radius:50%;background:#fff;margin-top:-6px;box-shadow:0 0 12px rgba(255,220,140,.8)}
+#scrub::-moz-range-thumb{width:16px;height:16px;border-radius:50%;background:#fff;border:0}
+#time{font-variant-numeric:tabular-nums;font-size:12px;color:var(--dim);width:74px;text-align:right}
+#tl.static #scrub,#tl.static #time{opacity:.35}
+.panel{position:fixed;z-index:6;top:0;bottom:0;width:min(380px,92vw);padding:max(18px,env(safe-area-inset-top)) 22px 22px;overflow-y:auto;transition:transform .35s cubic-bezier(.2,.8,.2,1)}
+#idx{left:0;transform:translateX(-102%);border-radius:0 24px 24px 0}#idx.open{transform:none}
+#info{right:0;transform:translateX(102%);border-radius:24px 0 0 24px}#info.open{transform:none}
+.ph{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+.ph h2{font-family:var(--serif);font-weight:500;font-size:24px;margin:0}
+.cat{font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:var(--gold);margin:22px 0 8px;font-weight:700}
+.it{display:block;width:100%;text-align:left;padding:11px 12px;border-radius:14px;margin:2px 0;transition:background .2s}
+.it:hover{background:rgba(255,255,255,.06)}.it.on{background:rgba(232,196,106,.14);box-shadow:inset 0 0 0 1px rgba(232,196,106,.35)}
+.it b{display:block;font-weight:600;font-size:15px}.it span{font-size:12px;color:var(--dim)}
+#info h3{font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:var(--gold);margin:22px 0 6px}
+#info p{margin:0;line-height:1.55;font-size:15px;color:#dfe3ff}
+#info .st{padding:12px 14px;border-radius:14px;background:rgba(232,196,106,.08);border:1px solid rgba(232,196,106,.25)}
+#info .help{margin-top:26px;font-size:12.5px;color:var(--dim);line-height:1.5}
+#info .about{margin-top:18px;font-size:12px;color:var(--dim);line-height:1.5;border-top:1px solid var(--line);padding-top:14px}
+#scrim{position:fixed;inset:0;background:rgba(0,0,0,.35);z-index:5;opacity:0;pointer-events:none;transition:opacity .3s}#scrim.on{opacity:1;pointer-events:auto}
+#toast{position:fixed;left:50%;top:76px;transform:translateX(-50%);padding:10px 16px;border-radius:12px;font-size:13px;z-index:9;opacity:0;transition:opacity .3s;pointer-events:none}#toast.on{opacity:1}
+#err{position:fixed;inset:0;display:none;place-items:center;text-align:center;padding:30px;z-index:20;background:var(--bg)}
+@media (max-width:720px){#head{right:16px;top:calc(max(12px,env(safe-area-inset-top)) + 54px)}#title{font-size:24px}#sub{display:none}.chip{padding:7px 12px;font-size:12.5px}#dock{border-radius:18px;padding:8px 10px 10px}
+ .panel{top:auto;left:0;right:0;width:100%;height:min(78vh,640px);border-radius:24px 24px 0 0;transform:translateY(102%)}#idx.open,#info.open{transform:none}
+ #tools .wide{display:none}}
+body.export #head,body.export #tools,body.export #dock,body.export .panel{display:none}
+</style>
+</head>
+<body>
+<div id="stage"><canvas id="gl"></canvas><canvas id="ov"></canvas></div>
+<header id="head"><div id="brand">Atlas · El sujeto de la ciencia</div><h1 id="title"></h1><div id="sub"></div></header>
+<nav id="tools" class="glass" style="border-radius:18px;padding:3px">
+ <button class="ib" id="bIdx" title="Índice" aria-label="Índice"><svg viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h10"/></svg></button>
+ <button class="ib" id="bInfo" title="Qué muestra" aria-label="Información"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5v.01"/></svg></button>
+ <button class="ib" id="bHome" title="Vista inicial" aria-label="Vista inicial"><svg viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/></svg></button>
+ <button class="ib" id="bFull" title="Pantalla completa" aria-label="Pantalla completa"><svg viewBox="0 0 24 24"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg></button>
+</nav>
+<section id="dock" class="glass"><div id="views"></div>
+ <div id="tl"><button id="play" aria-label="Reproducir"></button><input id="scrub" type="range" min="0" max="1000" value="0" aria-label="Tiempo"><div id="time"></div></div></section>
+<aside id="idx" class="panel glass"><div class="ph"><h2>Índice del atlas</h2><button class="ib" data-close><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div><div id="list"></div></aside>
+<aside id="info" class="panel glass"><div class="ph"><h2 id="iTitle"></h2><button class="ib" data-close><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>
+ <h3>Qué muestra</h3><p id="iM"></p><h3>Cómo se lee</h3><p id="iL"></p><h3>En el libro</h3><p id="iB"></p><h3>Estatuto</h3><p id="iE" class="st"></p>
+ <p class="help">Arrastra para girar los modelos, pellizca o usa la rueda para acercar, toca dos veces para volver a la vista inicial. Teclado: espacio (pausa), ← → (miradas), ↑ ↓ (modelos).</p>
+ <p class="about">Atlas que acompaña <i>El sujeto de la ciencia. Lógica, topología y estructura en la enseñanza de Lacan</i>, de Lizandro R. López Colque. Modelos calculados a partir de sus ecuaciones; los dibujos de terceros se rehicieron y se citan en el libro.</p></aside>
+<div id="scrim"></div><div id="toast" class="glass"></div>
+<div id="err"><div><h2 style="font-family:var(--serif);font-weight:500">Este dispositivo no tiene WebGL 2</h2><p style="color:var(--dim)">Abre el atlas en un navegador actualizado (Chrome, Safari, Firefox o Edge).</p></div></div>
+<script>
+// ============================================================================
+// Atlas 3D · El sujeto de la ciencia — motor de render (WebGL2 + Canvas 2D)
+// ============================================================================
+'use strict';
+const PI = Math.PI, TAU = 2 * Math.PI;
+const V = {
+  add: (a, b) => [a[0] + b[0], a[1] + b[1], a[2] + b[2]], sub: (a, b) => [a[0] - b[0], a[1] - b[1], a[2] - b[2]],
+  mul: (a, s) => [a[0] * s, a[1] * s, a[2] * s], dot: (a, b) => a[0] * b[0] + a[1] * b[1] + a[2] * b[2],
+  cross: (a, b) => [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]],
+  len: a => Math.hypot(a[0], a[1], a[2]), norm: a => { const l = Math.hypot(a[0], a[1], a[2]) || 1; return [a[0] / l, a[1] / l, a[2] / l]; },
+  lerp: (a, b, t) => [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t, a[2] + (b[2] - a[2]) * t]
+};
+const clamp = (x, a = 0, b = 1) => Math.max(a, Math.min(b, x));
+const ease = t => { t = clamp(t); return t * t * (3 - 2 * t); };
+const seg = (t, a, b) => clamp((t - a) / (b - a));          // fase normalizada de t entre a y b
+const easeSeg = (t, a, b) => ease(seg(t, a, b));
+function persp(f, a, n, fa) { const t = 1 / Math.tan(f / 2); return [t / a, 0, 0, 0, 0, t, 0, 0, 0, 0, (fa + n) / (n - fa), -1, 0, 0, 2 * fa * n / (n - fa), 0]; }
+function lookAt(e, c, u) { const z = V.norm(V.sub(e, c)), x = V.norm(V.cross(u, z)), y = V.cross(z, x); return [x[0], y[0], z[0], 0, x[1], y[1], z[1], 0, x[2], y[2], z[2], 0, -V.dot(x, e), -V.dot(y, e), -V.dot(z, e), 1]; }
+function mm(a, b) { const r = new Array(16).fill(0); for (let i = 0; i < 4; i++) for (let j = 0; j < 4; j++) for (let k = 0; k < 4; k++) r[j * 4 + i] += a[k * 4 + i] * b[j * 4 + k]; return r; }
+function xf(m, p) { const x = p[0], y = p[1], z = p[2]; const w = m[3] * x + m[7] * y + m[11] * z + m[15]; return [(m[0] * x + m[4] * y + m[8] * z + m[12]) / w, (m[1] * x + m[5] * y + m[9] * z + m[13]) / w, (m[2] * x + m[6] * y + m[10] * z + m[14]) / w, w]; }
+
+// ---------------------------------------------------------------- paleta
+const PAL = {
+  candy: [[1.0, 0.42, 0.76], [0.52, 0.34, 0.98]], sky: [[0.26, 0.78, 1.0], [0.42, 0.30, 0.96]], sun: [[1.0, 0.64, 0.24], [0.94, 0.24, 0.52]],
+  mint: [[0.28, 0.96, 0.76], [0.10, 0.56, 0.96]], gold: [[1.0, 0.86, 0.36], [0.96, 0.46, 0.14]], lime: [[0.74, 1.0, 0.36], [0.14, 0.76, 0.46]],
+  ink: [[0.16, 0.13, 0.30], [0.06, 0.05, 0.14]], ice: [[0.85, 0.95, 1.0], [0.55, 0.75, 1.0]]
+};
+const COL = { red: [1.0, 0.24, 0.30], cyan: [0.20, 0.90, 1.0], yel: [1.0, 0.86, 0.22], grn: [0.25, 0.96, 0.46], white: [0.96, 0.97, 1.0],
+  vio: [0.76, 0.46, 1.0], blue: [0.32, 0.56, 1.0], orange: [1.0, 0.56, 0.18], pink: [1.0, 0.45, 0.78] };
+const hex = c => '#' + c.map(x => Math.round(clamp(x) * 255).toString(16).padStart(2, '0')).join('');
+
+// ---------------------------------------------------------------- mallas
+// opciones: mode 'solid'|'glass'|'wire'|'glow', color, c2, alpha, grid:[gu,gv], spec, emit
+function surface(f, nu, nv, u0, u1, v0, v1, opt) {
+  const P = [], N = [], U = [], I = []; const eu = (u1 - u0) * 1e-4, ev = (v1 - v0) * 1e-4;
+  for (let j = 0; j <= nv; j++) for (let i = 0; i <= nu; i++) {
+    const u = u0 + (u1 - u0) * i / nu, v = v0 + (v1 - v0) * j / nv; const p = f(u, v);
+    let n = V.cross(V.sub(f(u + eu, v), f(u - eu, v)), V.sub(f(u, v + ev), f(u, v - ev)));
+    if (V.len(n) < 1e-12) n = V.cross(V.sub(f(u + 4 * eu, v), f(u - 4 * eu, v)), V.sub(f(u, v + 4 * ev), f(u, v - 4 * ev)));
+    P.push(p[0], p[1], p[2]); const nn = V.norm(n); N.push(nn[0], nn[1], nn[2]); U.push(i / nu, j / nv);
+  }
+  for (let j = 0; j < nv; j++) for (let i = 0; i < nu; i++) { const a = j * (nu + 1) + i, b = a + 1, c = a + nu + 1, d = c + 1; I.push(a, b, d, a, d, c); }
+  return Object.assign({ P, N, U, I, mode: 'solid' }, opt);
+}
+function tube(c, n, r, t0, t1, closed, opt) {
+  const pts = [], T = []; for (let k = 0; k <= n; k++) pts.push(c(t0 + (t1 - t0) * k / n));
+  for (let k = 0; k <= n; k++) { const a = pts[Math.max(0, k - 1)], b = pts[Math.min(n, k + 1)]; T.push(V.norm(V.sub(b, a))); }
+  if (closed) { T[0] = V.norm(V.sub(pts[1], pts[n - 1])); T[n] = T[0]; }
+  let nrm = V.norm(V.cross(T[0], Math.abs(T[0][2]) < 0.9 ? [0, 0, 1] : [1, 0, 0])); const F = [];
+  for (let k = 0; k <= n; k++) { if (k > 0) { nrm = V.norm(V.sub(nrm, V.mul(T[k], V.dot(nrm, T[k])))); } F.push([nrm, V.cross(T[k], nrm)]); }
+  const S = (opt && opt.sides) || 20, P = [], N = [], U = [], I = [];
+  for (let k = 0; k <= n; k++) for (let s = 0; s <= S; s++) {
+    const a = TAU * s / S; const d = V.add(V.mul(F[k][0], Math.cos(a)), V.mul(F[k][1], Math.sin(a)));
+    const p = V.add(pts[k], V.mul(d, r)); P.push(p[0], p[1], p[2]); N.push(d[0], d[1], d[2]); U.push(k / n, s / S);
+  }
+  for (let k = 0; k < n; k++) for (let s = 0; s < S; s++) { const a = k * (S + 1) + s, b = a + 1, c2 = a + S + 1, d = c2 + 1; I.push(a, c2, d, a, d, b); }
+  return Object.assign({ P, N, U, I, pts, T, segN: n, sidesN: S, mode: 'solid' }, opt);
+}
+function cone(p, dir, r, h, opt) {
+  const d = V.norm(dir); const a = V.norm(V.cross(d, Math.abs(d[2]) < 0.9 ? [0, 0, 1] : [1, 0, 0])), b = V.cross(d, a);
+  const S = 28, P = [], N = [], U = [], I = []; const tip = V.add(p, V.mul(d, h));
+  for (let s = 0; s <= S; s++) {
+    const t = TAU * s / S; const q = V.add(V.mul(a, Math.cos(t)), V.mul(b, Math.sin(t))); const nn = V.norm(V.add(q, V.mul(d, r / h)));
+    const pp = V.add(p, V.mul(q, r)); P.push(...pp, ...tip); N.push(...nn, ...nn); U.push(s / S, 0, s / S, 1);
+  }
+  for (let s = 0; s < S; s++) { const i = 2 * s; I.push(i, i + 2, i + 1); }
+  const base = P.length / 3; P.push(...p); N.push(...V.mul(d, -1)); U.push(0, 0);
+  for (let s = 0; s <= S; s++) { const t = TAU * s / S; const q = V.add(V.mul(a, Math.cos(t)), V.mul(b, Math.sin(t))); P.push(...V.add(p, V.mul(q, r))); N.push(...V.mul(d, -1)); U.push(0, 0); }
+  for (let s = 0; s < S; s++) I.push(base, base + 1 + s, base + 2 + s);
+  return Object.assign({ P, N, U, I, mode: 'solid' }, opt);
+}
+// vector: flecha recta desde p en la dirección dir con largo L
+function arrow(p, dir, L, opt) {
+  const d = V.norm(dir), r = (opt && opt.r) || 0.045, h = Math.min(L * 0.32, r * 5.5);
+  const end = V.add(p, V.mul(d, L - h));
+  return [tube(t => V.lerp(p, end, t), 2, r, 0, 1, false, Object.assign({ sides: 16 }, opt)), cone(end, d, r * 2.6, h, opt)];
+}
+function arrowsOn(tb, ks, color, size) {
+  const out = []; for (const k of ks) { const i = Math.round(k * (tb.pts.length - 1)); out.push(cone(tb.pts[i], tb.T[i], size, size * 2.4, { color, c2: color, spec: 0.6 })); } return out;
+}
+function ball(p, r, opt) { return surface((u, v) => [p[0] + r * Math.cos(u) * Math.sin(v), p[1] + r * Math.sin(u) * Math.sin(v), p[2] + r * Math.cos(v)], 24, 14, 0, TAU, 0, PI, opt); }
+// halo: copia translúcida y aditiva de un tubo
+function glowTube(c, n, r, t0, t1, closed, color, k = 2.6) {
+  return [tube(c, n, r, t0, t1, closed, { color, c2: color, spec: 0.3, emit: 0.9 }), tube(c, n, r * k, t0, t1, closed, { mode: 'glow', color, alpha: 0.28, sides: 14 })];
+}
+// caché de geometría fija, trazado parcial de tubos e instancias con otro color, alfa o desplazamiento
+const MEMO = new Map();
+function keepAll(o) { if (Array.isArray(o)) o.forEach(keepAll); else if (o && o.objs) o.objs.forEach(keepAll); else if (o && o.P) o.keep = true; return o; }
+function memo(k, fn) { let o = MEMO.get(k); if (!o) { o = keepAll(fn()); MEMO.set(k, o); } return o; }
+function inst(o, extra) { return Object.assign(Object.create(o), { base: o.base || o }, extra); }
+function part(o, f, extra) { const b = o.base || o, segs = b.segN, k = Math.max(0, Math.min(segs, Math.round(clamp(f) * segs))); return inst(o, Object.assign({ count: k * b.sidesN * 6 }, extra)); }
+function moveObj(o, d) { for (let i = 0; i < o.P.length; i += 3) { o.P[i] += d[0]; o.P[i + 1] += d[1]; o.P[i + 2] += d[2]; } return o; }
+
+// ---------------------------------------------------------------- render WebGL
+class GLR {
+  constructor(cv) {
+    this.cv = cv;
+    const gl = this.gl = cv.getContext('webgl2', { antialias: true, alpha: false, preserveDrawingBuffer: true });
+    if (!gl) throw new Error('WebGL2 no disponible');
+    const sh = (src, t) => { const s = gl.createShader(t); gl.shaderSource(s, src); gl.compileShader(s); if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) throw gl.getShaderInfoLog(s); return s; };
+    const prog = (vs, fs) => { const p = gl.createProgram(); gl.attachShader(p, sh(vs, gl.VERTEX_SHADER)); gl.attachShader(p, sh(fs, gl.FRAGMENT_SHADER)); gl.linkProgram(p); return p; };
+    this.bg = prog(`#version 300 es
+in vec2 a;out vec2 q;void main(){q=a;gl_Position=vec4(a,0.999,1.);}`, `#version 300 es
+precision highp float;in vec2 q;out vec4 o;uniform vec2 RES;uniform float SC;
+float h(vec2 p){return fract(sin(dot(p,vec2(12.9898,78.233)))*43758.5453);}
+void main(){float d=length(q*vec2(1.,.72)-vec2(.12,.22));
+ vec3 c=mix(vec3(.085,.075,.19),vec3(.012,.014,.04),smoothstep(0.,1.45,d));
+ c+=vec3(.26,.10,.36)*exp(-3.2*length(q-vec2(-.75,.62)))*.32+vec3(.05,.12,.30)*exp(-2.6*length(q-vec2(.85,-.7)))*.30;
+ vec2 g=floor(gl_FragCoord.xy/(3.*SC));float s=h(g);if(s>.9966){float b=h(g+7.)*.8+.2;c+=vec3(b)*(.55+.45*h(g+3.));}
+ o=vec4(c,1.);}`);
+    this.pr = prog(`#version 300 es
+in vec3 P;in vec3 N;in vec2 U;uniform mat4 M;uniform vec3 OFF;out vec3 p;out vec3 n;out vec2 u;
+void main(){p=P+OFF;n=N;u=U;gl_Position=M*vec4(p,1.);}`, `#version 300 es
+precision highp float;in vec3 p;in vec3 n;in vec2 u;out vec4 o;
+uniform vec3 E,C1,C2;uniform float A,SP,EM;uniform int MODE;uniform vec2 G;
+void main(){vec3 N=normalize(n);vec3 Vd=normalize(E-p);if(dot(N,Vd)<0.)N=-N;
+ if(MODE==3){float fr=pow(max(dot(N,Vd),0.),1.6);o=vec4(C1*fr,A*fr);return;}
+ vec3 base=mix(C1,C2,clamp(u.y*0.5+u.x*0.5,0.,1.));
+ vec2 gg=u*G;vec2 f=abs(fract(gg-.5)-.5)/fwidth(gg);float line=1.-min(min(f.x,f.y),1.);if(G.x<1.)line=0.;
+ vec3 L1=normalize(vec3(.6,-.5,.9)),L2=normalize(vec3(-.8,.4,.3)),L3=normalize(vec3(0.,.9,-.4));
+ float d=max(dot(N,L1),0.)*.82+max(dot(N,L2),0.)*.34+max(dot(N,L3),0.)*.18;
+ float s=pow(max(dot(N,normalize(L1+Vd)),0.),80.)*SP+pow(max(dot(N,normalize(L2+Vd)),0.),36.)*SP*.4;
+ float fr=pow(1.-max(dot(N,Vd),0.),3.);
+ if(MODE==2){if(line<.22)discard;o=vec4(mix(C2,C1,fr)*1.3,line*A);return;}
+ vec3 c=base*(.26+d)+vec3(s)+fr*vec3(.55,.62,1.)*.42+base*EM;
+ c=mix(c,c*.32,line*.7);
+ float a=1.;if(MODE==1){a=clamp(A+fr*.5+line*.35,0.,1.);}else{a=A;}
+ o=vec4(c,a);}`);
+    const quad = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, quad); gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 1, -1, -1, 1, 1, 1]), gl.STATIC_DRAW);
+    this.bgvao = gl.createVertexArray(); gl.bindVertexArray(this.bgvao); const l = gl.getAttribLocation(this.bg, 'a'); gl.enableVertexAttribArray(l); gl.vertexAttribPointer(l, 2, gl.FLOAT, false, 0, 0);
+    this.U = {}; for (const k of ['M', 'E', 'C1', 'C2', 'A', 'SP', 'EM', 'MODE', 'G', 'OFF']) this.U[k] = gl.getUniformLocation(this.pr, k);
+    this.loc = { P: gl.getAttribLocation(this.pr, 'P'), N: gl.getAttribLocation(this.pr, 'N'), U: gl.getAttribLocation(this.pr, 'U') };
+  }
+  upload(o) {
+    const gl = this.gl; if (o.vao) return; const vao = gl.createVertexArray(); gl.bindVertexArray(vao); o.bufs = [];
+    for (const [k, d, n] of [['P', o.P, 3], ['N', o.N, 3], ['U', o.U, 2]]) {
+      const b = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, b); gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(d), gl.STATIC_DRAW);
+      gl.enableVertexAttribArray(this.loc[k]); gl.vertexAttribPointer(this.loc[k], n, gl.FLOAT, false, 0, 0); o.bufs.push(b);
+    }
+    const ib = gl.createBuffer(); gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, ib); gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint32Array(o.I), gl.STATIC_DRAW); o.bufs.push(ib);
+    o.vao = vao; o.n = o.I.length;
+  }
+  free(o) { const gl = this.gl; if (!o.vao) return; for (const b of o.bufs) gl.deleteBuffer(b); gl.deleteVertexArray(o.vao); o.vao = null; }
+  render(objs, cam, W, H) {
+    const gl = this.gl; gl.viewport(0, 0, W, H); gl.clearColor(0, 0, 0, 1); gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+    gl.useProgram(this.bg); gl.uniform2f(gl.getUniformLocation(this.bg, 'RES'), W, H); gl.uniform1f(gl.getUniformLocation(this.bg, 'SC'), Math.max(1, H / 1080));
+    gl.bindVertexArray(this.bgvao); gl.disable(gl.DEPTH_TEST); gl.disable(gl.BLEND); gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+    if (!objs || !objs.length) return null;
+    const M = mm(persp(cam.fov, W / H, 0.05, cam.dist * 8), lookAt(cam.eye, cam.target, [0, 0, 1]));
+    gl.useProgram(this.pr); gl.enable(gl.DEPTH_TEST); gl.enable(gl.BLEND);
+    gl.uniformMatrix4fv(this.U.M, false, new Float32Array(M)); gl.uniform3fv(this.U.E, cam.eye);
+    const draw = o => {
+      const b = o.base || o; this.upload(b); gl.bindVertexArray(b.vao); gl.uniform3fv(this.U.OFF, o.off || [0, 0, 0]);
+      gl.uniform3fv(this.U.C1, o.color || [1, 1, 1]); gl.uniform3fv(this.U.C2, o.c2 || o.color || [1, 1, 1]);
+      gl.uniform1f(this.U.A, o.alpha == null ? (o.mode === 'glass' ? 0.4 : 1) : o.alpha); gl.uniform1f(this.U.SP, o.spec == null ? 0.75 : o.spec);
+      gl.uniform1f(this.U.EM, o.emit || 0);
+      gl.uniform1i(this.U.MODE, { solid: 0, glass: 1, wire: 2, glow: 3 }[o.mode] || 0); gl.uniform2fv(this.U.G, o.grid || [0, 0]);
+      const cnt = o.count != null ? o.count : b.n; if (cnt > 0) gl.drawElements(gl.TRIANGLES, cnt, gl.UNSIGNED_INT, 0);
+    };
+    gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA); gl.depthMask(true);
+    objs.filter(o => o.mode === 'solid' && (o.alpha == null || o.alpha >= 0.999)).forEach(draw);
+    gl.depthMask(false); gl.enable(gl.CULL_FACE);
+    const tr = objs.filter(o => o.mode === 'glass' || o.mode === 'wire' || (o.mode === 'solid' && o.alpha != null && o.alpha < 0.999));
+    for (const face of [gl.FRONT, gl.BACK]) { gl.cullFace(face); tr.forEach(draw); }
+    gl.disable(gl.CULL_FACE); gl.blendFunc(gl.SRC_ALPHA, gl.ONE);
+    objs.filter(o => o.mode === 'glow').forEach(draw);
+    gl.depthMask(true);
+    return M;
+  }
+}
+
+// ---------------------------------------------------------------- texto sobre el lienzo
+function txt(ctx, s, x, y, o = {}) {
+  const sz = o.size || 18; ctx.save(); ctx.font = `${o.weight || 600} ${sz}px ${o.font || 'Inter, "Helvetica Neue", Arial, sans-serif'}`;
+  ctx.textAlign = o.align || 'center'; ctx.textBaseline = o.base || 'middle';
+  if (o.shadow !== false) { ctx.shadowColor = 'rgba(0,0,0,.95)'; ctx.shadowBlur = sz * 0.6; }
+  ctx.fillStyle = o.color || '#fff'; ctx.globalAlpha = o.alpha == null ? 1 : o.alpha; ctx.fillText(s, x, y);
+  if (o.shadow !== false) { ctx.shadowBlur = sz * 0.25; ctx.fillText(s, x, y); }
+  ctx.restore();
+}
+function pill(ctx, s, x, y, o = {}) {
+  const sz = o.size || 18; ctx.save(); ctx.font = `${o.weight || 600} ${sz}px Inter, "Helvetica Neue", Arial, sans-serif`;
+  const w = ctx.measureText(s).width + sz * 1.3, h = sz * 1.75; const x0 = o.align === 'left' ? x : x - w / 2;
+  ctx.globalAlpha = o.alpha == null ? 1 : o.alpha; ctx.fillStyle = o.bg || 'rgba(10,12,30,.72)'; ctx.strokeStyle = o.border || 'rgba(255,255,255,.18)';
+  ctx.lineWidth = Math.max(1, sz / 14); ctx.beginPath(); ctx.roundRect(x0, y - h / 2, w, h, h / 2); ctx.fill(); ctx.stroke();
+  ctx.fillStyle = o.color || '#fff'; ctx.textAlign = 'left'; ctx.textBaseline = 'middle'; ctx.fillText(s, x0 + sz * 0.65, y + sz * 0.04);
+  ctx.restore(); return w;
+}
+
+// ============================================================================
+// Escenas tridimensionales: superficies, cortes y nudos
+// Cada escena tiene «miradas» (views); cada mirada: dur (s, 0 = fija) y frame(t) -> {objs, labels, cap, hud, cam}
+// ============================================================================
+'use strict';
+const SC = [];   // registro global de escenas
+
+// ---------------------------------------------------------------- parametrizaciones
+const torusF = (R, r, c = [0, 0, 0]) => (u, v) => [c[0] + (R + r * Math.cos(v)) * Math.cos(u), c[1] + (R + r * Math.cos(v)) * Math.sin(u), c[2] + r * Math.sin(v)];
+const mob = (R, w) => (u, v) => [(R + v * w * Math.cos(u / 2)) * Math.cos(u), (R + v * w * Math.cos(u / 2)) * Math.sin(u), v * w * Math.sin(u / 2)];
+function boyF(u, v) { const d = 2 - Math.SQRT2 * Math.sin(3 * u) * Math.sin(2 * v); return [1.6 * (Math.SQRT2 * Math.cos(v) ** 2 * Math.cos(2 * u) + Math.cos(u) * Math.sin(2 * v)) / d, 1.6 * (Math.SQRT2 * Math.cos(v) ** 2 * Math.sin(2 * u) - Math.sin(u) * Math.sin(2 * v)) / d, 1.6 * (3 * Math.cos(v) ** 2 / d - 1)]; }
+function kleinF(u, v) {
+  const cu = Math.cos(u), su = Math.sin(u), cv = Math.cos(v), sv = Math.sin(v);
+  const x = -2 / 15 * cu * (3 * cv - 30 * su + 90 * cu ** 4 * su - 60 * cu ** 6 * su + 5 * cu * cv * su);
+  const y = -1 / 15 * su * (3 * cv - 3 * cu ** 2 * cv - 48 * cu ** 4 * cv + 48 * cu ** 6 * cv - 60 * su + 5 * cu * cv * su - 5 * cu ** 3 * cv * su - 80 * cu ** 5 * cv * su + 80 * cu ** 7 * cv * su);
+  const z = 2 / 15 * (3 + 5 * cu * su) * sv; return [x, z, (y - 2.5) * 0.9];
+}
+// inmersión «en ocho» de la botella de Klein: (u+2π, v) ~ (u, −v)
+const klein8 = (a = 2.6) => (u, v) => { const c = Math.cos(u / 2), s = Math.sin(u / 2); const q = a + c * Math.sin(v) - s * Math.sin(2 * v); return [q * Math.cos(u), q * Math.sin(u), s * Math.sin(v) + c * Math.sin(2 * v)]; };
+// cross-cap: polo regular en v=0 (arriba), segmento de autointersección en v=π/2 (z de 0 a −1)
+const ccF = (k = 2.0) => (u, v) => [k * Math.cos(u) * Math.sin(2 * v), k * Math.sin(u) * Math.sin(2 * v), k * (Math.cos(v) ** 2 - Math.cos(u) ** 2 * Math.sin(v) ** 2)];
+const sphereF = (r, c = [0, 0, 0]) => (u, v) => [c[0] + r * Math.cos(u) * Math.sin(v), c[1] + r * Math.sin(u) * Math.sin(v), c[2] + r * Math.cos(v)];
+const off = (f, d) => (u, v) => V.add(f(u, v), d);
+// banda estándar con k medias vueltas y radio R (para mostrar el resultado de un corte)
+const bandK = (R, w, k) => (u, v) => [(R + v * w * Math.cos(k * u / 2)) * Math.cos(u), (R + v * w * Math.cos(k * u / 2)) * Math.sin(u), v * w * Math.sin(k * u / 2)];
+
+// pegado del rectángulo al toro: (x, y) del rectángulo, k1 enrolla y, k2 curva x
+function rectToTorus(x, y, k1, k2, R, r) {
+  let py, pz; // desplazamiento en el plano (Y, Z) local
+  if (k1 < 1e-4) { py = 0; pz = y; } else { const b = k1 * y / r, rk = r / k1; py = rk * (1 - Math.cos(b)); pz = rk * Math.sin(b); }
+  let cx, cy, rad;
+  if (k2 < 1e-4) { cx = x; cy = 0; rad = [0, 1, 0]; } else { const a = k2 * x / R, Rk = R / k2; cx = Rk * Math.sin(a); cy = -Rk * (1 - Math.cos(a)); rad = [Math.sin(a), Math.cos(a), 0]; }
+  return [cx + py * rad[0], cy + py * rad[1] + (R + r) * k2, pz];
+}
+// tira -> banda de Möbius: k=0 tira plana (en el plano XZ), k=1 banda cerrada con media vuelta
+function stripToMob(s, v, k, R, w) {
+  const L = TAU * R; let c, rad;
+  if (k < 1e-4) { c = [s, 0, 0]; rad = [0, 1, 0]; } else { const a = k * s / R, Rk = R / k; c = [Rk * Math.sin(a), -Rk * (1 - Math.cos(a)), 0]; rad = [Math.sin(a), Math.cos(a), 0]; }
+  const ph = k * PI * s / L; const d = V.add(V.mul([0, 0, 1], Math.cos(ph)), V.mul(rad, Math.sin(ph)));
+  return V.add(V.add(c, V.mul(d, v * w)), [0, R * k, 0]);
+}
+
+// ---------------------------------------------------------------- utilidades de escena
+const S3 = (def) => { def.kind = '3d'; SC.push(def); return def; };
+const L = (p, t, c, size) => ({ p, t, c: c || '#fff', size });
+const glass = (f, nu, nv, u0, u1, v0, v1, pal, alpha, grid) => surface(f, nu, nv, u0, u1, v0, v1, { mode: 'glass', color: pal[0], c2: pal[1], alpha: alpha == null ? 0.38 : alpha, grid });
+const solid = (f, nu, nv, u0, u1, v0, v1, pal, grid, o) => surface(f, nu, nv, u0, u1, v0, v1, Object.assign({ mode: 'solid', color: pal[0], c2: pal[1], grid }, o));
+const wire = (f, nu, nv, u0, u1, v0, v1, pal, grid) => surface(f, nu, nv, u0, u1, v0, v1, { mode: 'wire', color: pal[0], c2: pal[1], grid, alpha: 1 });
+const phaseCap = (t, list) => { let c = list[0][1]; for (const [a, s] of list) if (t >= a) c = s; return c; };
+
+// ============================================================================ 1. Banda de Möbius
+(() => {
+  const R = 2.1, W = 0.8, M = mob(R, W);
+  const normalAt = u => { const e = 1e-4; const du = V.sub(M(u + e, 0), M(u - e, 0)), dv = V.sub(M(u, e), M(u, -e)); return V.norm(V.cross(du, dv)); };
+  S3({ id: 'moebius', cat: 'Superficies', title: 'Banda de Möbius', az: -0.85, el: 0.62,
+    info: { muestra: 'La banda de Möbius: una superficie con una sola cara y un solo borde. Se obtiene pegando los extremos de una tira con media vuelta.',
+      lectura: 'Sigue el borde y el vector normal: el borde se cierra recién después de dos vueltas alrededor del alma, y el vector vuelve invertido. Los cortes cambian la superficie: cortada por la mitad deja de ser Möbius; cortada a un tercio, da dos bandas enlazadas.',
+      libro: 'Cap. 11 (banda de Möbius; taller «Cortar la banda de Möbius»); cap. 12 (atlas: construir, cortar, verificar); cap. 37 (doble bucle: el borde da dos vueltas alrededor del alma).', estatuto: 'Una cara, un borde y los efectos del corte son invariantes topológicos. Leerlos como sujeto es una asignación del texto (cap. 11: estructura, representación, asignación).' },
+    views: [
+      { id: 'borde', name: 'Una cara, un borde', dur: 9, frame(t) {
+        const p = easeSeg(t, 0.08, 0.88), s1 = 4 * PI * Math.max(p, 0.002);
+        const objs = [memo('mob-solid', () => solid(M, 240, 24, 0, TAU, -1, 1, PAL.mint, [64, 8]))];
+        objs.push(...memo('mob-edge', () => glowTube(s => M(s, 1.0), 400, 0.055, 0, 4 * PI, false, COL.yel)).map(o => part(o, s1 / (4 * PI))));
+        objs.push(ball(M(s1, 1.0), 0.14, { color: COL.white, c2: COL.yel, emit: 0.6 }));
+        const vueltas = s1 < TAU - 0.01 ? 1 : 2;
+        return { objs, labels: [L(M(0, 1.15), 'inicio del borde', '#ffe066')],
+          hud: [{ t: `Recorrido del borde: vuelta ${vueltas} de 2`, c: '#ffe066' }],
+          cap: phaseCap(t, [[0, 'El borde de la banda: lo recorremos sin levantar el dedo.'], [0.5, 'Después de una vuelta todavía no se cierra: está del «otro lado».'], [0.9, 'Se cierra recién en la segunda vuelta: hay un solo borde.']]) };
+      } },
+      { id: 'normal', name: 'Vector normal', dur: 10, frame(t) {
+        const p = easeSeg(t, 0.05, 0.85), u = TAU * p;
+        const objs = memo('mob-normal', () => [glass(M, 240, 24, 0, TAU, -1, 1, PAL.mint, 0.34, [64, 8]), tube(s => M(s, 0), 240, 0.025, 0, TAU, true, { color: COL.white, c2: COL.white, emit: 0.4 })]).slice();
+        objs.push(...arrow(M(0, 0), normalAt(0), 1.15, { color: COL.white, c2: COL.white, alpha: 0.55, r: 0.035 }));
+        for (let k = 1; k <= 11; k++) { const uk = TAU * k / 12; if (uk < u - 0.05) objs.push(...arrow(M(uk, 0), normalAt(uk), 0.7, { color: COL.vio, c2: COL.vio, alpha: 0.75, r: 0.028 })); }
+        objs.push(...arrow(M(u, 0), normalAt(u), 1.15, { color: COL.red, c2: COL.red, emit: 0.35, r: 0.05 }));
+        const dotp = V.dot(normalAt(u), normalAt(0));
+        return { objs, labels: [L(V.add(M(0, 0), V.mul(normalAt(0), 1.45)), 'normal inicial', '#ffffff'), L(V.add(M(u, 0), V.mul(normalAt(u), 1.5)), 'normal transportada', '#ff6070')],
+          hud: [{ t: `Ángulo recorrido: ${Math.round(u * 180 / PI)}°`, c: '#ff8a96' }, { t: `Producto con la normal inicial: ${dotp.toFixed(2)}`, c: '#c9b8ff' }],
+          cap: phaseCap(t, [[0, 'Llevamos un vector normal a lo largo de la línea media, sin despegarlo de la superficie.'], [0.86, 'Al volver al punto de partida apunta al lado opuesto: la banda no es orientable.']]) };
+      } },
+      { id: 'corte-mitad', name: 'Corte por la mitad', dur: 14, frame(t) {
+        const objs = [], p1 = easeSeg(t, 0.04, 0.3), g = 0.16 * easeSeg(t, 0.32, 0.5), fade = easeSeg(t, 0.72, 0.9);
+        if (g <= 0.001) {
+          objs.push(memo('mob-solid', () => solid(M, 240, 24, 0, TAU, -1, 1, PAL.mint, [64, 8])));
+          if (p1 > 0.002) objs.push(...memo('mob-midcut', () => glowTube(s => M(s, 0), 240, 0.05, 0, TAU, false, COL.red)).map(o => part(o, p1)));
+        } else if (fade < 1) {
+          const half = g >= 0.1599 ? memo('mob-half', () => solid(M, 420, 12, 0, 4 * PI, 0.16, 1, PAL.sun, [96, 3])) : solid(M, 420, 12, 0, 4 * PI, g, 1, PAL.sun, [96, 3]);
+          objs.push(fade > 0 ? inst(half, { alpha: 1 - fade }) : half);
+        }
+        if (fade > 0) {
+          const B = bandK(2.7, 0.42, 4);
+          objs.push(inst(memo('mob-B', () => solid(B, 300, 10, 0, TAU, -1, 1, PAL.sun, [80, 3])), { alpha: fade }));
+          if (fade > 0.6) objs.push(...memo('mob-Bedges', () => [...glowTube(s => B(s, 1), 300, 0.04, 0, TAU, true, COL.cyan), ...glowTube(s => B(s, -1), 300, 0.04, 0, TAU, true, COL.yel)]));
+        }
+        return { objs, labels: fade > 0.6 ? [L([0, -3.4, 0.9], 'borde 1', '#40e6ff'), L([0, 3.4, 0.9], 'borde 2', '#ffe066')] : [],
+          hud: [{ t: g > 0 ? 'Una sola pieza: el color sigue continuo' : 'Corte a lo largo de la línea media', c: '#ffb070' }],
+          cam: { az: -0.85 + 0.9 * easeSeg(t, 0.5, 0.72) },
+          cap: phaseCap(t, [[0, 'Cortamos la banda por su línea media.'], [0.32, 'No se separa en dos: queda una sola banda, del doble de largo.'], [0.72, 'Desplegada: dos vueltas completas, dos caras y dos bordes. Ya no es una banda de Möbius.']]) };
+      } },
+      { id: 'corte-tercio', name: 'Corte a un tercio', dur: 14, frame(t) {
+        const objs = [], p1 = easeSeg(t, 0.04, 0.36), g = 0.06 * easeSeg(t, 0.38, 0.55);
+        if (g <= 0.001) {
+          objs.push(memo('mob-solid', () => solid(M, 240, 24, 0, TAU, -1, 1, PAL.mint, [64, 8])));
+          if (p1 > 0.002) objs.push(...memo('mob-thirdcut', () => glowTube(s => M(s, 1 / 3), 420, 0.045, 0, 4 * PI, false, COL.red)).map(o => part(o, p1)));
+        } else if (g < 0.0599) {
+          objs.push(solid(M, 240, 8, 0, TAU, -1 / 3 + g, 1 / 3 - g, PAL.gold, [64, 2]), solid(M, 420, 10, 0, 4 * PI, 1 / 3 + g, 1, PAL.sky, [96, 3]));
+        } else objs.push(...memo('mob-thirds', () => [solid(M, 240, 8, 0, TAU, -1 / 3 + 0.06, 1 / 3 - 0.06, PAL.gold, [64, 2]), solid(M, 420, 10, 0, 4 * PI, 1 / 3 + 0.06, 1, PAL.sky, [96, 3])]));
+        return { objs, labels: g > 0.03 ? [L(M(PI / 2, 0.0), 'banda de Möbius (un tercio del ancho)', '#ffd770'), L(V.add(M(-PI / 2, 1), [0, 0, 0.3]), 'banda de dos caras, doble de largo', '#8fd6ff')] : [],
+          hud: [{ t: p1 < 0.5 ? 'El corte a un tercio da dos vueltas antes de cerrarse' : 'Un solo corte cerrado', c: '#ff8a96' }],
+          cam: { az: -0.85 + 1.2 * easeSeg(t, 0.55, 1) },
+          cap: phaseCap(t, [[0, 'Cortamos a un tercio del ancho: el corte da dos vueltas antes de cerrarse.'], [0.38, 'Resultado: dos bandas enlazadas.'], [0.6, 'Una banda de Möbius delgada y una banda de dos caras del doble de largo, enlazadas: no se separan sin otro corte.']]) };
+      } },
+      { id: 'pegado', name: 'De la tira a la banda', dur: 10, fit: 'frame', frame(t) {
+        const k = easeSeg(t, 0.12, 0.85), Rr = 1.9, w = 0.75, Lh = PI * Rr;
+        const f = (s, v) => stripToMob(s, v, k, Rr, w);
+        const objs = [solid(f, 200, 16, -Lh, Lh, -1, 1, PAL.mint, [48, 6])];
+        const e0 = v => f(-Lh, v), e1 = v => f(Lh, v);
+        objs.push(...glowTube(e0, 20, 0.045, -1, 1, false, COL.red)); objs.push(...glowTube(e1, 20, 0.045, -1, 1, false, COL.red));
+        const d0 = V.sub(e0(1), e0(-1)), d1 = V.sub(e1(-1), e1(1));
+        objs.push(cone(V.add(e0(0), V.mul(V.norm(d0), -0.1)), d0, 0.13, 0.3, { color: COL.red, c2: COL.red, emit: 0.4 }));
+        objs.push(cone(V.add(e1(0), V.mul(V.norm(d1), -0.1)), d1, 0.13, 0.3, { color: COL.red, c2: COL.red, emit: 0.4 }));
+        return { objs, labels: k < 0.9 ? [L(V.add(e0(0), [-0.45, 0, 0]), 'A', '#ff6070', 30), L(V.add(e1(0), [0.45, 0, 0]), 'A′', '#ff6070', 30)] : [],
+          cam: { el: 0.25 + 0.4 * k },
+          cap: phaseCap(t, [[0, 'Una tira con los extremos A y A′ marcados con flechas opuestas.'], [0.4, 'Pegar A con A′ haciendo coincidir las flechas obliga a dar media vuelta.'], [0.86, 'La banda de Möbius: el polígono con un par de lados identificados al revés.']]) };
+      } },
+      { id: 'en-el-toro', name: 'Dentro del toro', dur: 0, frame() {
+        return { objs: memo('mob-intorus', () => [glass(torusF(2.2, 0.95), 160, 70, 0, TAU, 0, TAU, PAL.sky, 0.28, [36, 16]), solid(mob(2.2, 0.78), 220, 24, 0, TAU, -1, 1, PAL.sun, [60, 6])]),
+          labels: [L([0, -3.6, 1.2], 'Möbius dentro del toro sólido', '#ffb070')], cap: 'La banda de Möbius cabe dentro de un toro sólido: su línea media es el alma del toro.' };
+      } }
+    ] });
+})();
+
+// ============================================================================ 2. Toro
+(() => {
+  const R = 2.2, r = 0.85, T = torusF(R, r);
+  const rectViews = (rev) => ({ dur: 14, frame(t) {
+    const tt = rev ? 1 - t : t;
+    const k1 = easeSeg(tt, 0.08, 0.45), k2 = easeSeg(tt, 0.55, 0.92), Rr = 1.7, rr = 0.68, X = PI * Rr, Y = PI * rr;
+    const f = (x, y) => rectToTorus(x, y, k1, k2, Rr, rr);
+    const objs = [solid(f, 140, 60, -X, X, -Y, Y, PAL.candy, [24, 10])];
+    const A = x => f(x, -Y), A2 = x => f(x, Y), B = y => f(-X, y), B2 = y => f(X, y);
+    for (const [c, col] of [[A, COL.cyan], [A2, COL.cyan], [B, COL.red], [B2, COL.red]]) objs.push(...glowTube(c, 80, 0.04, c === A || c === A2 ? -X : -Y, c === A || c === A2 ? X : Y, false, col, 2.2));
+    const ar = (c, a, b, col) => { const p = c((a + b) / 2), q = c((a + b) / 2 + 0.05 * (b - a)); objs.push(cone(p, V.sub(q, p), 0.12, 0.3, { color: col, c2: col, emit: 0.4 })); };
+    ar(A, -X, X, COL.cyan); ar(A2, -X, X, COL.cyan); ar(B, -Y, Y, COL.red); ar(B2, -Y, Y, COL.red);
+    const labels = k2 < 0.3 ? [L(V.add(A(0), [0, 0, -0.45]), 'a', '#40e6ff', 30), L(V.add(A2(0), [0, 0, 0.45]), 'a', '#40e6ff', 30), L(V.add(B(0), [-0.45, 0, 0]), 'b', '#ff6070', 30), L(V.add(B2(0), [0.45, 0, 0]), 'b', '#ff6070', 30)] : [];
+    const hud = [{ t: 'χ = V − A + C = 0 en todas las etapas', c: '#d6c8ff' }];
+    const cap = rev ? phaseCap(t, [[0, 'Cortamos el toro por un meridiano (b): no se separa, queda un cilindro.'], [0.5, 'Cortamos el cilindro por una longitud (a): queda un rectángulo.'], [0.9, 'Dos cortes que no separan: el toro es el rectángulo con sus lados identificados.']])
+      : phaseCap(t, [[0, 'Rectángulo: los lados a se pegan entre sí, y los lados b entre sí, respetando las flechas.'], [0.1, 'Primer pegado (a): un cilindro.'], [0.55, 'Segundo pegado (b): el toro.']]);
+    return { objs, labels, hud, cap, cam: { el: 0.12 + 0.5 * k2, az: -PI / 2 + 0.35 * k2 } };
+  } });
+  S3({ id: 'toro', cat: 'Superficies', title: 'Toro', az: -0.9, el: 0.6,
+    info: { muestra: 'El toro: la superficie de una rosquilla. Tiene dos clases de lazos que no se pueden achicar hasta un punto: los que rodean el tubo (meridianos) y los que rodean el agujero central (longitudes).',
+      lectura: 'El libro sigue el texto de Lacan: demanda = meridiano. Las vueltas de la demanda se repiten alrededor del tubo; su serie termina dando la vuelta alrededor del agujero central que ninguna da por sí sola: la vuelta del deseo, con el objeto en el agujero. En dos toros abrazados, una vuelta de la demanda en uno es una vuelta alrededor del agujero del otro.',
+      libro: 'Cap. 11 (§ 4, el toro); cap. 12 (§ 4: las vueltas de la demanda, los toros abrazados, Figuras 12.6 y 12.7); cap. 29 (la neurosis con dos toros enlazados). Lacan, Seminario 9, clases del 14-3-62 y del 30-5-62.', estatuto: 'La geometría es exacta; la correspondencia con demanda y deseo es una analogía estructural (cap. 12, Figura 12.6).' },
+    views: [
+      { id: 'ciclos', name: 'Meridiano y longitud', dur: 8, frame(t) {
+        const objs = memo('toro-ciclos', () => { const m = tube(v => torusF(R, r + 0.05)(0, v), 160, 0.06, 0, TAU, true, { color: COL.red, c2: COL.red, emit: 0.3 });
+          const l = tube(u => torusF(R, r + 0.05)(u, PI / 2), 240, 0.06, 0, TAU, true, { color: COL.cyan, c2: COL.cyan, emit: 0.3 });
+          return [glass(T, 160, 70, 0, TAU, 0, TAU, PAL.candy, 0.38, [36, 16]), m, l, ...arrowsOn(m, [0.25, 0.75], COL.red, 0.15), ...arrowsOn(l, [0.12, 0.62], COL.cyan, 0.15)]; }).slice();
+        objs.push(ball(torusF(R, r + 0.05)(0, TAU * t), 0.13, { color: COL.white, c2: COL.red, emit: 0.5 }));
+        objs.push(ball(torusF(R, r + 0.05)(TAU * t, PI / 2), 0.13, { color: COL.white, c2: COL.cyan, emit: 0.5 }));
+        return { objs, labels: [L([R, 0, r + 0.55], 'meridiano · demanda', '#ff5a6a'), L([-1.6, -2.3, r + 0.5], 'longitud · deseo', '#40e6ff')],
+          cap: 'Dos lazos que no se reducen a un punto: el meridiano rodea el tubo; la longitud rodea el agujero central.' };
+      } },
+      { id: 'demanda', name: 'Demanda y deseo', dur: 14, frame(t) {
+        const n = 9, p = easeSeg(t, 0.05, 0.78), s1 = TAU * Math.max(p, 0.002);
+        const objs = [memo('toro-dem-glass', () => glass(T, 160, 70, 0, TAU, 0, TAU, PAL.sun, 0.32, [40, 18]))];
+        objs.push(part(memo('toro-dem-helix', () => tube(s => torusF(R, r + 0.08)(s, n * s), 1400, 0.045, 0, TAU, false, { color: COL.red, c2: [0.75, 0.1, 0.2], emit: 0.25 })), s1 / TAU));
+        objs.push(ball(torusF(R, r + 0.08)(s1, n * s1), 0.12, { color: COL.white, c2: COL.red, emit: 0.6 }));
+        const dz = easeSeg(t, 0.8, 0.95);
+        if (dz > 0) objs.push(...memo('toro-dem-des', () => glowTube(u => torusF(R, r + 0.45)(u, 0), 300, 0.06, 0, TAU, false, COL.cyan)).map(o => part(o, dz)));
+        if (dz > 0.5) objs.push(ball([0, 0, 0], 0.22, { color: COL.yel, c2: COL.orange, emit: 0.8 }));
+        const k = Math.min(n, Math.floor(n * s1 / TAU + 1e-6));
+        return { objs, labels: dz > 0.5 ? [L([0, -(R + r + 0.9), 0.2], 'la vuelta del deseo', '#40e6ff'), L([0, 0, 0.55], 'agujero: lugar del objeto', '#ffe066')] : [L([0, R + r + 0.4, r + 0.6], 'vueltas de la demanda', '#ff6070')],
+          hud: [{ t: `Vueltas de la demanda (alrededor del tubo): ${k}`, c: '#ff8a96' }, { t: dz > 0.99 ? 'Vueltas alrededor del agujero central: 1, que ninguna da sola' : 'Vueltas alrededor del agujero central: …', c: '#40e6ff' }],
+          cap: phaseCap(t, [[0, 'La demanda se repite: cada vuelta rodea el tubo y se puede contar.'], [0.8, 'La serie entera dio una vuelta alrededor del agujero central que ninguna vuelta da por sí sola: la vuelta del deseo.']]) };
+      } },
+      Object.assign({ id: 'pegado', name: 'Del rectángulo al toro', fit: 'frame' }, rectViews(false)),
+      Object.assign({ id: 'cortes', name: 'Cortes: del toro al rectángulo', fit: 'frame' }, rectViews(true)),
+      { id: 'enlazados', name: 'Sujeto y Otro', dur: 16, frame(t) {
+        const Rr = 2.0, rr = 0.6, A = torusF(Rr, rr), B = (u, v) => { const p = torusF(Rr, rr)(u, v); return [p[0] + Rr, p[2], p[1]]; };
+        const objs = memo('toro-enl', () => [glass(A, 150, 60, 0, TAU, 0, TAU, PAL.candy, 0.42, [36, 14]), glass(B, 150, 60, 0, TAU, 0, TAU, PAL.sky, 0.38, [36, 14])]).slice();
+        const ph = t < 0.5 ? 0 : 1, q = ph === 0 ? easeSeg(t, 0.05, 0.42) : easeSeg(t, 0.55, 0.92);
+        let dem, des, labels;
+        if (ph === 0) {
+          dem = v => [Rr + (rr + 0.06) * Math.cos(v), 0, (rr + 0.06) * Math.sin(v)];
+          des = v => [Rr + (Rr - rr - 0.08) * Math.cos(v), 0, (Rr - rr - 0.08) * Math.sin(v)];
+          labels = [L([Rr, 0, rr + 0.5], 'demanda del sujeto', '#ff6070'), L([Rr, 0, -Rr + rr - 0.1], 'vuelta del agujero del Otro', '#ffe066'), L([-Rr - 0.8, -1.2, 0.6], 'toro del sujeto', '#ff9ad8'), L([Rr * 2 + 0.4, 0, 1.6], 'toro del Otro', '#8fd6ff')];
+        } else {
+          dem = v => [(rr + 0.06) * Math.cos(v), (rr + 0.06) * Math.sin(v), 0];
+          des = v => [(Rr - rr - 0.08) * Math.cos(v), (Rr - rr - 0.08) * Math.sin(v), 0];
+          labels = [L([0, 0, 0.75], 'demanda del Otro', '#ff6070'), L([0, -(Rr - rr) - 0.25, -0.35], 'vuelta del agujero del sujeto', '#ffe066'), L([-Rr - 0.8, -1.2, 0.6], 'toro del sujeto', '#ff9ad8'), L([Rr * 2 + 0.4, 0, 1.6], 'toro del Otro', '#8fd6ff')];
+        }
+        objs.push(...memo('toro-enl-' + ph, () => [...glowTube(dem, 120, 0.04, 0, TAU, true, COL.red), ...glowTube(des, 200, 0.045, 0, TAU, true, COL.yel)]));
+        objs.push(ball(dem(TAU * q), 0.11, { color: COL.white, c2: COL.red, emit: 0.6 }), ball(des(TAU * q), 0.11, { color: COL.white, c2: COL.yel, emit: 0.6 }));
+        return { objs, labels, cap: ph === 0 ? 'Una vuelta de la demanda en el toro del sujeto es una vuelta alrededor del agujero central del Otro.' : 'Y a la inversa. Lacan: la demanda del sujeto coincide con el objeto del Otro, y el objeto del sujeto con la demanda del Otro (Seminario 9, clase del 30-5-62).',
+          cam: { az: -0.75 + 0.5 * Math.sin(PI * t) } };
+      } }
+    ] });
+})();
+
+// ============================================================================ 3. Esfera y toro: el corte que separa
+(() => {
+  S3({ id: 'esfera-toro', cat: 'Cortes', title: 'Esfera y toro: separar o no', az: -PI / 2, el: 0.42,
+    info: { muestra: 'Un mismo gesto, un corte por una curva cerrada, tiene efectos distintos según la superficie.',
+      lectura: 'En la esfera, toda curva cerrada simple separa en dos (teorema de Jordan): hay un adentro y un afuera, como en la representación del individuo. En el toro, un meridiano no separa: queda un cilindro. La estructura decide el efecto del corte.',
+      libro: 'Cap. 11 (§ 3, la esfera: interioridad, tautología, individuo; § 4, el toro); cap. 20 (la curva de Jordan y el agujero del cuerpo).', estatuto: 'Propiedad topológica exacta.' },
+    views: [{ id: 'separa', name: 'El corte', dur: 12, frame(t) {
+      const objs = [], c = [-2.9, 0, 0], p1 = easeSeg(t, 0.05, 0.35), sep = easeSeg(t, 0.4, 0.65);
+      const caps = memo('esf-caps', () => [solid(off(sphereF(1.5), c), 120, 30, 0, TAU, 0, PI / 2 - 0.02, PAL.sky, [24, 6]), solid(off(sphereF(1.5), c), 120, 30, 0, TAU, PI / 2 + 0.02, PI, PAL.sky, [24, 6])]);
+      objs.push(inst(caps[0], { off: [0, 0, 0.75 * sep] }), inst(caps[1], { off: [0, 0, -0.75 * sep] }));
+      if (sep < 0.05 && p1 > 0) objs.push(...memo('esf-cut', () => glowTube(u => [c[0] + 1.53 * Math.cos(u), 1.53 * Math.sin(u), 0], 160, 0.045, 0, TAU, false, COL.red)).map(o => part(o, p1)));
+      const k = 1 - 0.32 * easeSeg(t, 0.68, 0.92), Rr = 1.45, rr = 0.58, X = PI * Rr, Y = PI * rr, g = 0.03;
+      const f = (x, y) => V.add(rectToTorus(x, y, 1, k, Rr, rr), [2.9, -(Rr + rr) * k + 0.1, 0]);
+      objs.push(solid(f, 140, 50, -X + g, X - g, -Y, Y, PAL.candy, [28, 10]));
+      if (t < 0.7 && p1 > 0) objs.push(...glowTube(y => f(-X + g, y), 60, 0.045, -Y, -Y + 2 * Y * p1, false, COL.red));
+      return { objs, labels: [L([c[0], 0, -2.6], sep > 0.5 ? 'dos piezas: adentro y afuera' : 'esfera', '#8fd6ff'), L([2.9, 0, -1.6], k < 0.95 ? 'una sola pieza: un cilindro' : 'toro', '#ff9ad8')],
+        cap: phaseCap(t, [[0, 'Cortamos la esfera por una curva cerrada, y el toro por un meridiano.'], [0.4, 'La esfera se separa en dos casquetes: el corte dibuja un adentro y un afuera.'], [0.68, 'El toro no se separa: se abre en un cilindro.']]) };
+    } }] });
+})();
+
+// ============================================================================ 4. Cross-cap
+(() => {
+  const F = ccF(2.0), v0 = 0.62;
+  S3({ id: 'crosscap', cat: 'Superficies', title: 'Cross-cap (plano proyectivo)', az: -0.55, el: 0.32,
+    info: { muestra: 'El cross-cap es una inmersión del plano proyectivo en el espacio: una superficie sin borde, no orientable, que se atraviesa a sí misma a lo largo de un segmento.',
+      lectura: 'El plano proyectivo es un disco pegado por su borde al borde único de una banda de Möbius. Un corte cerrado que separa un disco deja una banda de Möbius: el objeto a es ese disco, y lo que cuenta no es su materia sino el corte, porque el disco puede reducirse a un punto sin que la estructura cambie. En Lacan el corte es un «ocho interior» que pasa por la línea de autointersección; aquí se dibuja una curva equivalente, más fácil de ver.',
+      libro: 'Cap. 11 (plano proyectivo, Figuras 11.17 a 11.21); cap. 14 (§ 5, la topología del objeto); cap. 16 (el fantasma: «$ corte de a»).', estatuto: 'Topología exacta: plano proyectivo = disco ∪ banda de Möbius. La lectura del disco como objeto a es del texto de Lacan.' },
+    views: [
+      { id: 'superficie', name: 'La superficie', dur: 12, frame(t) {
+        const objs = memo('cc-surf', () => [solid(F, 200, 90, 0, TAU, 0, PI / 2, PAL.sun, [40, 16]), ...glowTube(s => [0, 0, -2.0 * s], 10, 0.035, 0, 1, false, COL.cyan)]);
+        return { objs, labels: [L([0.55, 0, -1.0], 'segmento de autointersección', '#40e6ff'), L([0, 0, 2.4], 'polo', '#ffffff')], cam: { az: -0.55 + TAU * t },
+          cap: 'Una superficie cerrada que se atraviesa a sí misma: el segmento azul es donde se cruza.' };
+      } },
+      { id: 'extraccion', name: 'Extraer el objeto a', dur: 14, frame(t) {
+        const p1 = easeSeg(t, 0.06, 0.32), lift = easeSeg(t, 0.38, 0.7), objs = [];
+        objs.push(...memo('cc-ext-base', () => [solid(F, 200, 70, 0, TAU, v0, PI / 2, PAL.sun, [40, 12]), ...glowTube(s => [0, 0, -2.0 * s], 10, 0.03, 0, 1, false, COL.cyan)]));
+        const D = off(F, [0, 0, 1.7 * lift]), dk = [0, 0, 1.7 * lift];
+        objs.push(...memo('cc-ext-disk', () => [solid(F, 120, 20, 0, TAU, 0, v0, PAL.ink, [24, 4], { spec: 0.35 }), ...glowTube(u => F(u, v0), 160, 0.035, 0, TAU, true, COL.yel)]).map(o => inst(o, { off: dk })));
+        objs.push(...memo('cc-ext-cut', () => glowTube(u => F(u, v0), 160, 0.045, 0, TAU, false, COL.red)).map(o => part(o, lift < 0.02 ? p1 : 1)));
+        return { objs, labels: lift > 0.5 ? [L(V.add(D(0, 0), [0, 0, 0.55]), 'disco extraído: el objeto a', '#ffe066'), L([2.3, 0, -0.4], 'queda una banda de Möbius: el sujeto', '#ffb070'), L(F(PI, v0 + 0.05), 'un solo borde', '#ff6070')] : [],
+          cam: { az: -0.55 + 0.8 * easeSeg(t, 0.7, 1) },
+          cap: phaseCap(t, [[0, 'Un corte cerrado alrededor de un punto de la superficie.'], [0.38, 'El disco se desprende: el objeto a.'], [0.7, 'Lo que queda, con el segmento de autointersección, es una banda de Möbius de un solo borde.']]) };
+      } },
+      { id: 'tres', name: 'Esfera, toro, cross-cap', dur: 0, spin: false, frame() {
+        const ink = (f, a, b, c, d, nu, nv) => surface(f, nu, nv, a, b, c, d, { mode: 'solid', color: PAL.ink[0], c2: PAL.ink[1], spec: 0.3 });
+        const objs = memo('cc-tres', () => [solid(sphereF(1.4, [-4.4, 0, 0]), 110, 55, 0, TAU, 0, PI, PAL.sky, [24, 12]), ink(sphereF(1.415, [-4.4, 0, 0]), 0, TAU, 0, 0.55, 60, 8),
+          solid(torusF(1.3, 0.55), 120, 50, 0, TAU, 0, TAU, PAL.mint, [30, 12]), ink(torusF(1.3, 0.562), -0.35, 0.35, -0.6, 0.6, 40, 40),
+          solid((u, v) => V.add(V.mul(F(u, v), 0.65), [4.2, 0, 0]), 140, 70, 0, TAU, 0.6, PI / 2, PAL.sun, [36, 12]),
+          ink((u, v) => V.add(V.mul(F(u, v), 0.65), [4.2, 0, 0.55]), 0, TAU, 0, 0.6, 80, 14)]);
+        return { objs, labels: [L([-4.4, 0, -2.2], 'esfera', '#8fd6ff'), L([0, 0, -1.6], 'toro', '#7af5c8'), L([4.2, 0, -2.0], 'cross-cap', '#ffb070'), L([0, -2.6, 2.1], 'en oscuro: lo que el corte extrae', '#d8c8ff')],
+          cap: 'El mismo corte en tres superficies: en la esfera y el toro saca un disco; en el cross-cap, el disco que sale deja una banda de Möbius.', cam: { az: -PI / 2, el: 0.32 } };
+      } }
+    ] });
+})();
+
+// ============================================================================ 5. Botella de Klein
+(() => {
+  const K8 = klein8(2.6);
+  S3({ id: 'klein', cat: 'Superficies', title: 'Botella de Klein', az: -PI / 2, el: 0.15,
+    info: { muestra: 'La botella de Klein: superficie cerrada, sin borde y no orientable. En el espacio solo se puede representar atravesándose a sí misma.',
+      lectura: '«La botella de Klein está hecha de dos bandas de Moebius» (Lacan, Seminario 12, clase del 16-6-65): un corte la separa en dos bandas. Tiene la misma característica de Euler que el toro (χ = 0), pero no es orientable: por eso no son la misma superficie.',
+      libro: 'Cap. 11 (§ 7, dos Moebius); cap. 12 (Lámina 6, Figura 12.9; taller «Leer la palabra de un polígono»).', estatuto: 'Resultado matemático.' },
+    views: [
+      { id: 'botella', name: 'La botella', dur: 12, frame(t) { return { objs: memo('kl-sol', () => [solid(kleinF, 180, 80, 0, PI, 0, TAU, PAL.candy, [40, 20])]), cam: { az: -PI / 2 + 0.9 * Math.sin(TAU * t) }, cap: 'El cuello entra por la pared y se une al fondo: no hay adentro ni afuera.' }; } },
+      { id: 'malla', name: 'Malla', dur: 12, frame(t) { return { objs: memo('kl-wire', () => [wire(kleinF, 120, 60, 0, PI, 0, TAU, [COL.white, COL.cyan], [40, 20]), glass(kleinF, 120, 60, 0, PI, 0, TAU, PAL.candy, 0.18)]), cam: { az: -PI / 2 + TAU * t }, cap: 'La malla deja ver la autointersección: el círculo por donde el cuello atraviesa la pared.' }; } },
+      { id: 'corte', name: 'Un corte: dos Möbius', dur: 15, frame(t) {
+        const p1 = easeSeg(t, 0.04, 0.34), col = easeSeg(t, 0.36, 0.48), sep = easeSeg(t, 0.52, 0.85), objs = [];
+        if (col < 0.01) {
+          objs.push(memo('kl8', () => solid(K8, 220, 80, 0, TAU, 0, TAU, PAL.candy, [48, 16])));
+          if (p1 > 0) objs.push(...memo('kl8-cut', () => glowTube(s => K8(s, PI / 2), 360, 0.05, 0, 4 * PI, false, COL.red)).map(o => part(o, p1)));
+        } else {
+          const hv = memo('kl8-halves', () => [solid(K8, 220, 40, 0, TAU, -PI / 2 + 0.02, PI / 2 - 0.02, PAL.gold, [48, 8]), solid(K8, 220, 40, 0, TAU, PI / 2 + 0.02, 3 * PI / 2 - 0.02, PAL.sky, [48, 8])]);
+          objs.push(hv[0], inst(hv[1], { off: [0, 6.2 * sep, 0] }));
+        }
+        return { objs, labels: sep > 0.7 ? [L([0, 0, -2.0], 'banda de Möbius', '#ffd770'), L([0, 6.2, -2.0], 'banda de Möbius', '#8fd6ff')] : [],
+          cam: { az: -PI / 2 + 0.25, el: 0.55 },
+          cap: phaseCap(t, [[0, 'Botella de Klein en su inmersión «en ocho». Un solo corte cerrado (rojo) da dos vueltas.'], [0.36, 'El corte la divide en dos mitades.'], [0.55, 'Cada mitad es una banda de Möbius: la botella de Klein es su pegado por el borde.']]) };
+      } },
+      { id: 'poligonos', name: 'Polígonos: toro, Klein, proyectivo', dur: 0, spin: false, frame() {
+        const objs = [], labels = [];
+        const sq = (cx, ar, br, pal, name) => {
+          const s = 1.5; objs.push(solid((u, v) => [cx + u, 0, v], 4, 4, -s, s, -s, s, pal, [6, 6]));
+          const edge = (p, q, col, dir, twice) => { objs.push(...glowTube(k => V.lerp(p, q, k), 4, 0.04, 0, 1, false, col, 2)); const m = V.lerp(p, q, 0.5); const d = V.mul(V.sub(q, p), dir);
+            objs.push(cone(V.add(m, V.mul(V.norm(d), -0.15)), d, 0.12, 0.3, { color: col, c2: col, emit: 0.4 })); if (twice) objs.push(cone(V.add(m, V.mul(V.norm(d), 0.2)), d, 0.12, 0.3, { color: col, c2: col, emit: 0.4 })); };
+          edge([cx - s, 0, -s], [cx + s, 0, -s], COL.cyan, 1, false); edge([cx - s, 0, s], [cx + s, 0, s], COL.cyan, ar, false);
+          edge([cx - s, 0, -s], [cx - s, 0, s], COL.red, 1, true); edge([cx + s, 0, -s], [cx + s, 0, s], COL.red, br, true);
+          labels.push(L([cx, 0, -2.35], name, '#ffffff', 22));
+        };
+        sq(-4.4, 1, 1, PAL.candy, 'toro: aba⁻¹b⁻¹'); sq(0, 1, -1, PAL.sun, 'botella de Klein: abab⁻¹'); sq(4.4, -1, -1, PAL.mint, 'plano proyectivo: abab');
+        return { objs, labels, cap: 'La superficie se lee en la palabra del borde: si una letra se repite con el mismo sentido, la superficie no es orientable.', cam: { az: -PI / 2, el: 0.05 } };
+      } }
+    ] });
+})();
+
+// ============================================================================ 6. Superficie de Boy
+(() => {
+  S3({ id: 'boy', cat: 'Superficies', title: 'Superficie de Boy', az: -1.2, el: 0.6,
+    info: { muestra: 'La superficie de Boy es otra inmersión del plano proyectivo (Boy, 1901): una curva triple de autointersección con un punto triple y ningún punto de pellizco.',
+      lectura: 'Es la misma superficie que el cross-cap, dibujada de otro modo. Lo que el psicoanálisis toma no es la forma, que depende de la inmersión, sino los invariantes: un solo lado, característica 1 y un corte que separa un disco sin dividir el resto en dos.',
+      libro: 'Cap. 11 (inmersión; Figuras 11.19 a 11.21: la misma superficie por pegado, como cross-cap y como superficie de Boy).', estatuto: 'Topología exacta.' },
+    views: ['solid', 'glass', 'wire'].map((m, k) => ({ id: ['superficie', 'vidrio', 'malla'][k], name: ['Superficie', 'Vidrio', 'Malla'][k], dur: 14, frame(t) {
+      const o = memo('boy-' + m, () => m === 'solid' ? solid(boyF, 220, 140, -PI / 2, PI / 2, 0, PI, PAL.mint, [48, 24]) : m === 'glass' ? glass(boyF, 200, 120, -PI / 2, PI / 2, 0, PI, PAL.candy, 0.4, [48, 24]) : wire(boyF, 160, 100, -PI / 2, PI / 2, 0, PI, [COL.white, COL.cyan], [48, 24]));
+      return { objs: [o], cam: { az: -1.2 + TAU * t }, cap: ['Superficie de Boy: tres lóbulos alrededor de un punto triple.', 'En vidrio se ven los pliegues interiores.', 'La malla de parámetros: lo que el espacio no deja ver de una vez.'][k] };
+    } })) });
+})();
+
+// ============================================================================ 7. Cadena borromea
+(() => {
+  const a = 2.2, b = 1.1, E = [t => [a * Math.cos(t), b * Math.sin(t), 0], t => [0, a * Math.cos(t), b * Math.sin(t)], t => [b * Math.sin(t), 0, a * Math.cos(t)]];
+  const C = [COL.red, COL.grn, COL.blue], N = ['R', 'S', 'I'], H = ['#ff6070', '#60ff8a', '#7aa8ff'], DIR = [[1, 0, 0], [0, 1, 0], [0, 0, 1]];
+  const ring = (k, d, opt) => inst(memo('bor-' + k, () => tube(E[k], 260, 0.2, 0, TAU, true, { color: C[k], c2: V.mul(C[k], 0.6), spec: 0.9 })), Object.assign({ off: d || [0, 0, 0] }, opt));
+  S3({ id: 'borromeo', cat: 'Nudos', title: 'Cadena borromea', az: -0.75, el: 0.5,
+    info: { muestra: 'Tres anillos (real, simbólico, imaginario) que se sostienen juntos aunque ningún par esté enlazado.',
+      lectura: 'Cortar cualquiera de los tres libera a los otros dos: esa es la propiedad borromea. Lo que anuda no está en cada par, sino en la relación de los tres; los números de enlace de a pares valen 0, y el invariante triple de Milnor vale ±1.',
+      libro: 'Cap. 21 (el nudo borromeo, § 2.5; taller «Tres anillos que no se tocan de a dos»); cap. 22 (atlas de nudos y cadenas).', estatuto: 'Matemática de nudos.' },
+    views: [
+      { id: 'cadena', name: 'La cadena', dur: 12, frame(t) { return { objs: [0, 1, 2].map(k => ring(k)), labels: [L([2.6, 0, 0.6], 'R', H[0], 28), L([0, 2.6, 0.6], 'S', H[1], 28), L([0.6, 0, 2.6], 'I', H[2], 28)], cam: { az: -0.75 + TAU * t }, cap: 'Tres elipses en tres planos perpendiculares: ningún par enlazado, los tres sí.' }; } },
+      { id: 'corte', name: 'Cortar un anillo', dur: 12, frame(t) {
+        const gap = 0.7 * easeSeg(t, 0.18, 0.36), fade = easeSeg(t, 0.36, 0.5), mv = 3.4 * easeSeg(t, 0.55, 0.9), objs = [];
+        if (fade < 1) objs.push(tube(E[0], 240, 0.2, PI / 2 + gap, PI / 2 + TAU - gap, false, { color: C[0], c2: V.mul(C[0], 0.6), spec: 0.9, alpha: 1 - fade }));
+        if (t > 0.1 && t < 0.3) objs.push(ball(E[0](PI / 2), 0.32 * (1 - Math.abs(t - 0.2) * 8), { mode: 'glow', color: COL.yel, alpha: 0.9 }));
+        objs.push(ring(1, [0, mv, 0]), ring(2));
+        return { objs, labels: [L([0, 2.6 + mv, 0.6], 'S', H[1], 28), L([0.6, 0, 2.6], 'I', H[2], 28)].concat(fade < 0.5 ? [L([0, 1.5, 0.5], 'corte', '#ffe066')] : []),
+          cap: phaseCap(t, [[0, 'Cortamos uno de los tres anillos.'], [0.5, 'Los otros dos quedan libres: se separan sin tocarse.']]) };
+      } },
+      { id: 'pares', name: 'De a pares', dur: 15, frame(t) {
+        const k = Math.min(2, Math.floor(t * 3)), q = t * 3 - k, mv = 2.7 * Math.sin(PI * easeSeg(q, 0.1, 0.9));
+        const objs = [0, 1, 2].map(j => j === (k + 2) % 3 ? ring(j, null, { alpha: 0.12 }) : ring(j, j === k ? V.mul(DIR[k], mv) : null));
+        return { objs, labels: [L([0, 0, -2.7], `par ${N[k]}–${N[(k + 1) % 3]}: se separa sin cortar`, '#ffffff', 22)], cap: 'Tomados de a dos, los anillos no están enlazados: cada par se separa sin cortar nada.' };
+      } }
+    ] });
+})();
+
+// ============================================================================ 8. Cadena olímpica
+(() => {
+  const rr = 1.3, F = [t => [-2.2 + rr * Math.cos(t), rr * Math.sin(t), 0], t => [rr * Math.cos(t), 0, rr * Math.sin(t)], t => [2.2 + rr * Math.cos(t), rr * Math.sin(t), 0]];
+  const C = [COL.red, COL.grn, COL.blue];
+  const ring = (k, d, o) => inst(memo('oli-' + k, () => tube(F[k], 200, 0.16, 0, TAU, true, { color: C[k], c2: V.mul(C[k], 0.6), spec: 0.9 })), Object.assign({ off: d || [0, 0, 0] }, o));
+  const cutView = (id, name, kc) => ({ id, name, dur: 12, frame(t) {
+    const gap = 0.6 * easeSeg(t, 0.15, 0.32), fade = easeSeg(t, 0.32, 0.45), mv = easeSeg(t, 0.5, 0.88), objs = [];
+    const d = kc === 1 ? [[-2.2 * mv, 0, 0], null, [2.2 * mv, 0, 0]] : [null, [3 * mv, 0, 0], [3 * mv, 0, 0]];
+    for (let k = 0; k < 3; k++) {
+      if (k === kc) { if (fade < 1) objs.push(tube(F[k], 200, 0.16, PI / 2 + gap, PI / 2 + TAU - gap, false, { color: C[k], c2: V.mul(C[k], 0.6), alpha: 1 - fade })); }
+      else objs.push(ring(k, d[k]));
+    }
+    return { objs, cap: kc === 1 ? phaseCap(t, [[0, 'Cortamos el anillo del medio.'], [0.5, 'Los extremos quedan libres: cada uno solo estaba enlazado al del medio.']]) : phaseCap(t, [[0, 'Cortamos un anillo de un extremo.'], [0.5, 'Los otros dos siguen enlazados: se mueven juntos.']]) };
+  } });
+  S3({ id: 'olimpica', cat: 'Nudos', title: 'Cadena olímpica', az: -1.2, el: 0.5,
+    info: { muestra: 'Una cadena: cada anillo enlaza solo a su vecino.', lectura: 'A diferencia de la borromea, aquí el enlace está en cada par: cortar el del medio libera a los extremos, pero cortar un extremo deja a los otros dos enlazados. Los números de enlace son ±1 entre vecinos y 0 entre los extremos.',
+      libro: 'Caps. 21 y 22 (taller «Cadena olímpica y cadena borromea»); cap. 29 (neurosis).', estatuto: 'Matemática de enlaces.' },
+    views: [{ id: 'cadena', name: 'La cadena', dur: 12, frame(t) { return { objs: [0, 1, 2].map(k => ring(k)), cam: { az: -1.2 + TAU * t }, cap: 'Cada anillo enlaza solo a su vecino.' }; } },
+      cutView('corte-medio', 'Cortar el del medio', 1), cutView('corte-extremo', 'Cortar un extremo', 0)] });
+})();
+
+// ============================================================================ 9. Nudos
+(() => {
+  const trefoil = (R, r, cx = 0) => t => [cx + (R + r * Math.cos(3 * t)) * Math.cos(2 * t), (R + r * Math.cos(3 * t)) * Math.sin(2 * t), r * Math.sin(3 * t)];
+  S3({ id: 'nudos', cat: 'Nudos', title: 'Nudos y el trébol en el toro', az: -1.5707, el: 0.3,
+    info: { muestra: 'Los nudos elementales y el trébol como nudo tórico T(2, 3).', lectura: 'Un nudo se define por lo que no cambia al deformarlo sin cortar: el nudo trivial, el trébol y el nudo de ocho son distintos; el enlace de Hopf une dos anillos. El trébol se dibuja sobre un toro: dos vueltas en un sentido y tres en el otro.',
+      libro: 'Cap. 21 (nudos, diagramas, invariantes; el trébol); cap. 22 (atlas de nudos y cadenas); cap. 33 (psicosis y nudo de trébol).', estatuto: 'Matemática de nudos.' },
+    views: [
+      { id: 'elementales', name: 'Nudos elementales', dur: 0, spin: false, frame() {
+        const c = [[0.3, 0.65, 1.0], PAL.sun[0], COL.grn, COL.vio], objs = [];
+        objs.push(tube(t => [-6 + 1.3 * Math.cos(t), 1.3 * Math.sin(t), 0], 160, 0.16, 0, TAU, true, { color: c[0], c2: V.mul(c[0], 0.6) }));
+        objs.push(tube(t => { const p = trefoil(1.1, 0.55)(t); return [p[0] - 2, p[1], p[2]]; }, 500, 0.16, 0, TAU, true, { color: c[1], c2: PAL.sun[1] }));
+        objs.push(tube(t => [2 + (1.2 + 0.6 * Math.cos(2 * t)) * Math.cos(3 * t) * 0.85, (1.2 + 0.6 * Math.cos(2 * t)) * Math.sin(3 * t) * 0.85, 0.65 * Math.sin(4 * t)], 600, 0.16, 0, TAU, true, { color: c[2], c2: PAL.lime[1] }));
+        objs.push(tube(t => [5.6 + 1.1 * Math.cos(t), 1.1 * Math.sin(t), 0], 160, 0.16, 0, TAU, true, { color: c[3], c2: PAL.candy[1] }));
+        objs.push(tube(t => [6.7 + 1.1 * Math.cos(t), 0, 1.1 * Math.sin(t)], 160, 0.16, 0, TAU, true, { color: COL.red, c2: PAL.sun[1] }));
+        return { objs, labels: [L([-6, 0, -2.1], 'nudo trivial', '#8fc0ff'), L([-2, 0, -2.1], 'trébol', '#ffb070'), L([2, 0, -2.1], 'nudo de ocho', '#7cf09a'), L([6.1, 0, -2.1], 'enlace de Hopf', '#d0a8ff')], cap: 'Cuatro objetos que ninguna deformación sin corte convierte uno en otro.', cam: { az: -PI / 2, el: 0.55 } };
+      } },
+      { id: 'trebol', name: 'El trébol sobre el toro', dur: 14, frame(t) {
+        const T = torusF(2.0, 0.8), p = easeSeg(t, 0.05, 0.85), s1 = TAU * Math.max(p, 0.002);
+        const objs = [memo('tre-glass', () => glass(T, 160, 70, 0, TAU, 0, TAU, PAL.sky, 0.24, [36, 16]))];
+        objs.push(part(memo('tre-knot', () => tube(s => torusF(2.0, 0.8)(2 * s, 3 * s), 600, 0.11, 0, TAU, false, { color: PAL.sun[0], c2: PAL.sun[1], spec: 0.9 })), s1 / TAU));
+        objs.push(ball(torusF(2.0, 0.8)(2 * s1, 3 * s1), 0.16, { color: COL.white, c2: COL.yel, emit: 0.6 }));
+        return { objs, hud: [{ t: `Vueltas alrededor del eje: ${Math.min(2, Math.floor(2 * s1 / TAU + 1e-6))} de 2`, c: '#ffb070' }, { t: `Vueltas alrededor del tubo: ${Math.min(3, Math.floor(3 * s1 / TAU + 1e-6))} de 3`, c: '#8fd6ff' }],
+          cam: { el: 0.8 }, cap: 'El trébol T(2, 3): dos vueltas alrededor del eje y tres alrededor del tubo, sin cruzarse sobre el toro.' };
+      } }
+    ] });
+})();
+
+// ============================================================================
+// Escenas planas animadas: experimentos de la física y lógicas que el libro usa
+// draw(g) recibe g = {c, W, H, land, t (0-1), T (s), dur}; dibuja en un marco virtual W×H
+// (1600×900 apaisado, 900×1500 vertical) y devuelve {cap, hud}
+// ============================================================================
+'use strict';
+const S2 = def => { def.kind = '2d'; SC.push(def); return def; };
+const K = { txt: '#eef0ff', dim: 'rgba(225,230,255,.62)', faint: 'rgba(225,230,255,.25)', line: 'rgba(255,255,255,.16)',
+  red: '#ff5a6a', cyan: '#40e6ff', yel: '#ffd84a', grn: '#5cf28c', vio: '#b48cff', orange: '#ff9a3c', pink: '#ff7ac8', blue: '#6c95ff', white: '#ffffff' };
+function rng(seed) { return () => { seed |= 0; seed = seed + 0x6D2B79F5 | 0; let t = Math.imul(seed ^ seed >>> 15, 1 | seed); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+const FONT = 'Inter, "Helvetica Neue", "Segoe UI", Arial, sans-serif', SERIF = '"Iowan Old Style", "Palatino Linotype", Palatino, "Book Antiqua", Georgia, serif';
+function tx(c, s, x, y, o = {}) {
+  c.save(); c.font = `${o.it ? 'italic ' : ''}${o.w || 500} ${o.s || 26}px ${o.serif ? SERIF : FONT}`; c.textAlign = o.a || 'center'; c.textBaseline = o.b || 'middle';
+  c.globalAlpha = o.al == null ? 1 : o.al; if (o.glow) { c.shadowColor = o.col || K.txt; c.shadowBlur = o.glow; }
+  c.fillStyle = o.col || K.txt; c.fillText(s, x, y); c.restore();
+}
+function ln(c, pts, col, w = 3, o = {}) {
+  if (pts.length < 2) return; c.save(); c.strokeStyle = col; c.lineWidth = w; c.lineJoin = 'round'; c.lineCap = 'round'; c.globalAlpha = o.al == null ? 1 : o.al;
+  if (o.dash) c.setLineDash(o.dash); if (o.glow) { c.shadowColor = col; c.shadowBlur = o.glow; }
+  c.beginPath(); c.moveTo(pts[0][0], pts[0][1]); for (let i = 1; i < pts.length; i++) c.lineTo(pts[i][0], pts[i][1]); if (o.close) c.closePath(); c.stroke(); c.restore();
+}
+function arr(c, x1, y1, x2, y2, col, w = 4, o = {}) {
+  const a = Math.atan2(y2 - y1, x2 - x1), h = o.h || w * 4.2, L = Math.hypot(x2 - x1, y2 - y1); if (L < 1) return;
+  const xe = x2 - Math.cos(a) * h * 0.8, ye = y2 - Math.sin(a) * h * 0.8;
+  ln(c, [[x1, y1], [xe, ye]], col, w, o);
+  c.save(); c.globalAlpha = o.al == null ? 1 : o.al; c.fillStyle = col; if (o.glow) { c.shadowColor = col; c.shadowBlur = o.glow; }
+  c.beginPath(); c.moveTo(x2, y2); c.lineTo(x2 - Math.cos(a - 0.42) * h, y2 - Math.sin(a - 0.42) * h); c.lineTo(x2 - Math.cos(a + 0.42) * h, y2 - Math.sin(a + 0.42) * h); c.closePath(); c.fill(); c.restore();
+}
+function dot(c, x, y, r, col, o = {}) {
+  c.save(); c.globalAlpha = o.al == null ? 1 : o.al;
+  if (o.halo) { const g = c.createRadialGradient(x, y, 0, x, y, r * o.halo); g.addColorStop(0, col); g.addColorStop(1, 'rgba(0,0,0,0)'); c.fillStyle = g; c.globalAlpha *= 0.5; c.beginPath(); c.arc(x, y, r * o.halo, 0, TAU); c.fill(); c.globalAlpha = o.al == null ? 1 : o.al; }
+  c.fillStyle = col; c.beginPath(); c.arc(x, y, r, 0, TAU); c.fill(); if (o.stroke) { c.strokeStyle = o.stroke; c.lineWidth = o.sw || 2; c.stroke(); } c.restore();
+}
+function box(c, x, y, w, h, o = {}) {
+  c.save(); c.globalAlpha = o.al == null ? 1 : o.al; c.beginPath(); c.roundRect(x, y, w, h, o.r == null ? 18 : o.r);
+  c.fillStyle = o.fill || 'rgba(14,16,40,.62)'; c.fill(); c.strokeStyle = o.stroke || 'rgba(255,255,255,.14)'; c.lineWidth = o.sw || 2; if (o.glow) { c.shadowColor = o.stroke; c.shadowBlur = o.glow; } c.stroke(); c.restore();
+  if (o.title) tx(c, o.title, x + 22, y + 30, { a: 'left', s: o.ts || 22, w: 700, col: o.tc || K.dim });
+}
+const lerp = (a, b, t) => a + (b - a) * t;
+const cell = (g, n, i, pad = 24, top = 0) => { // n cajas en fila (apaisado) o columna (vertical)
+  const { W, H, land } = g; if (land) { const w = (W - pad * (n + 1)) / n; return [pad + i * (w + pad), pad + top, w, H - 2 * pad - top]; }
+  const h = (H - pad * (n + 1) - top) / n; return [pad, pad + top + i * (h + pad), W - 2 * pad, h];
+};
+const grid4 = (g, i, pad = 22) => { const { W, H, land } = g; if (land) { const w = (W - 3 * pad) / 2, h = (H - 3 * pad) / 2; return [pad + (i % 2) * (w + pad), pad + Math.floor(i / 2) * (h + pad), w, h]; } return cell(g, 4, i, pad); };
+
+// ============================================================================ Doble rendija
+(() => {
+  const cache = {};
+  function setup(g, mode) {
+    const key = mode + (g.land ? 'L' : 'P'); if (cache[key]) return cache[key];
+    const LW = g.land ? g.W : g.H, LH = g.land ? g.H : g.W;
+    const xs = 0.07 * LW, xb = 0.36 * LW, xsc = 0.73 * LW, cy = LH * 0.5, hs = LH * 0.4, lam = 0.03 * LW, d = 0.085 * LH, aw = 0.022 * LH;
+    const slits = mode === 1 ? [cy] : [cy - d / 2, cy + d / 2]; const k = TAU / lam;
+    const srcs = []; slits.forEach((s, j) => { for (let q = 0; q < 7; q++) srcs.push([xb, s - aw / 2 + aw * q / 6, j]); });
+    const amp = (a, b, which) => { let re = 0, im = 0; for (const [x, y, j] of srcs) { if (which != null && j !== which) continue; const r = Math.hypot(a - x, b - y); re += Math.cos(k * r) / Math.sqrt(r); im += Math.sin(k * r) / Math.sqrt(r); } return [re, im]; };
+    const NB = 500, I = new Float64Array(NB);
+    for (let i = 0; i < NB; i++) { const b = cy - hs + 2 * hs * (i + 0.5) / NB;
+      if (mode === 3) { const a0 = amp(xsc, b, 0), a1 = amp(xsc, b, 1); I[i] = a0[0] ** 2 + a0[1] ** 2 + a1[0] ** 2 + a1[1] ** 2; } else { const a = amp(xsc, b); I[i] = a[0] ** 2 + a[1] ** 2; } }
+    const mx = Math.max(...I); for (let i = 0; i < NB; i++) I[i] /= mx;
+    const cdf = new Float64Array(NB); let s = 0; for (let i = 0; i < NB; i++) { s += I[i]; cdf[i] = s; } for (let i = 0; i < NB; i++) cdf[i] /= s;
+    const N = mode === 1 ? 900 : 1700, R = rng(7 + mode), hits = [];
+    for (let i = 0; i < N; i++) { const u = R(); let lo = 0, hi = NB - 1; while (lo < hi) { const m = (lo + hi) >> 1; if (cdf[m] < u) lo = m + 1; else hi = m; }
+      const b = cy - hs + 2 * hs * (lo + R()) / NB; const slit = mode === 3 ? (R() < 0.5 ? 0 : 1) : -1; hits.push({ b, j: (R() - 0.5) * 10, te: 0, slit }); }
+    const fw = 230, fh = Math.round(fw * (2 * hs) / (xsc - xs)), off = document.createElement('canvas'); off.width = fw; off.height = fh;
+    return cache[key] = { LW, LH, xs, xb, xsc, cy, hs, lam, k, slits, srcs, amp, I, NB, hits, N, off, octx: off.getContext('2d'), img: off.getContext('2d').createImageData(fw, fh), fw, fh };
+  }
+  function frame(g, mode) {
+    const S = setup(g, mode), c = g.c, { LW, LH, xs, xb, xsc, cy, hs } = S, P = (a, b) => g.land ? [a, b] : [g.W - b, a];
+    const T = g.T, T0 = 0.8, T1 = g.dur * 0.8, vr = 0.42 * LW, tau = (xsc - xs) / vr;
+    S.hits.forEach((h, i) => h.te = T0 + (T1 - T0) * Math.pow(i / S.N, 0.42));
+    const last = S.hits.filter(h => h.te <= T).slice(-1)[0];
+    // campo de ondas
+    const w = TAU * 1.1, { fw, fh, img } = S, D = img.data, which = mode === 3 && last ? last.slit : null, fade = mode === 3 ? 0.55 : 1;
+    for (let j = 0; j < fh; j++) for (let i = 0; i < fw; i++) {
+      const a = xs + (xsc - xs) * (i + 0.5) / fw, b = cy - hs + 2 * hs * (j + 0.5) / fh; let v;
+      if (a < xb) v = Math.cos(S.k * (a - xs) - w * T) * 0.55;
+      else { let re = 0, im = 0; for (const [x, y, q] of S.srcs) { if (which != null && q !== which) continue; const r = Math.hypot(a - x, b - y) + 1e-3; const ph = S.k * r - w * T; re += Math.cos(ph) / Math.sqrt(r); } v = re * Math.sqrt(xsc - xb) / (S.srcs.length / (which != null ? 2 : 1)) * 0.9; }
+      const p = (j * fw + i) * 4, e = Math.max(-1, Math.min(1, v)) * fade;
+      D[p] = e > 0 ? 40 + 60 * e : 10 + 20 * -e; D[p + 1] = e > 0 ? 110 + 140 * e : 20 + 30 * -e; D[p + 2] = e > 0 ? 170 + 85 * e : 50 + 60 * -e; D[p + 3] = 40 + 120 * Math.abs(e);
+    }
+    S.octx.putImageData(img, 0, 0);
+    c.save(); if (!g.land) { c.translate(g.W, 0); c.rotate(PI / 2); }
+    c.imageSmoothingEnabled = true; c.globalAlpha = 0.85; c.drawImage(S.off, xs, cy - hs, xsc - xs, 2 * hs); c.globalAlpha = 1;
+    // barrera
+    const op = S.slits, aw = 0.022 * LH; c.fillStyle = '#c9cfe8'; const edges = [cy - hs - 6].concat(...op.map(s => [s - aw / 2, s + aw / 2]), [cy + hs + 6]);
+    for (let i = 0; i < edges.length; i += 2) c.fillRect(xb - 5, edges[i], 10, edges[i + 1] - edges[i]);
+    // detector
+    if (mode === 3) op.forEach((s, q) => { const on = last && last.slit === q && T - last.te < tau * 0.9 && T - last.te > (xb - xs) / vr; c.fillStyle = on ? K.yel : 'rgba(255,216,74,.25)'; c.shadowColor = K.yel; c.shadowBlur = on ? 30 : 0; c.fillRect(xb + 10, s - aw * 0.7, 16, aw * 1.4); c.shadowBlur = 0; });
+    // pantalla
+    c.fillStyle = 'rgba(255,255,255,.1)'; c.fillRect(xsc - 4, cy - hs, 8, 2 * hs);
+    // pulsos (anillos) de los últimos electrones
+    c.lineWidth = 2.2; const live = S.hits.filter(h => h.te <= T && T - h.te < tau).slice(-18);
+    for (const h of live) { const r = vr * (T - h.te); c.strokeStyle = 'rgba(255,255,255,.55)';
+      c.save(); c.beginPath(); c.rect(xs, cy - hs, xb - xs, 2 * hs); c.clip(); c.beginPath(); c.arc(xs, cy, r, -PI / 2, PI / 2); c.stroke(); c.restore();
+      const r2 = r - (xb - xs); if (r2 > 0) { c.save(); c.beginPath(); c.rect(xb, cy - hs, xsc - xb, 2 * hs); c.clip(); c.strokeStyle = mode === 3 ? 'rgba(255,216,74,.6)' : 'rgba(64,230,255,.6)';
+        for (let q = 0; q < op.length; q++) { if (mode === 3 && h.slit !== q) continue; c.beginPath(); c.arc(xb, op[q], r2, -PI / 2, PI / 2); c.stroke(); } c.restore(); } }
+    // impactos
+    const done = S.hits.filter(h => T - h.te >= tau); const nb = 90, bins = new Array(nb).fill(0);
+    for (const h of done) { const fresh = T - h.te - tau < 0.35; dot(c, xsc + h.j, h.b, fresh ? 4 : 2.3, fresh ? '#ffffff' : 'rgba(150,240,255,.85)', fresh ? { halo: 4 } : {}); bins[Math.min(nb - 1, Math.floor((h.b - (cy - hs)) / (2 * hs) * nb))]++; }
+    const hx = xsc + 24, hl = LW * 0.955 - hx, bm = Math.max(12, ...bins); c.fillStyle = 'rgba(64,230,255,.75)';
+    bins.forEach((n, i) => c.fillRect(hx, cy - hs + i * 2 * hs / nb + 1, hl * n / bm, 2 * hs / nb - 2));
+    if (g.t > 0.82) { const al = easeSeg(g.t, 0.82, 0.9); const pts = []; const tot = done.length, sumI = S.I.reduce((a, b) => a + b, 0);
+      for (let i = 0; i < S.NB; i += 2) pts.push([hx + hl * (S.I[i] * tot / sumI * S.NB / nb) / bm, cy - hs + 2 * hs * (i + 0.5) / S.NB]); ln(c, pts, K.yel, 3, { al }); }
+    c.restore();
+    const L = (s, a, b, col, o = {}) => { if (g.land) { tx(c, s, a, b, Object.assign({ s: 24, w: 600, col }, o)); return; } tx(c, s, 18, a + (s === 'recuento' ? 0 : -24), Object.assign({ s: 26, w: 600, col, a: 'left' }, o)); };
+    L('fuente', xs, cy + (g.land ? hs + 34 : 0), K.dim); L(mode === 1 ? 'una rendija' : 'dos rendijas', xb, cy - hs - 30, K.dim);
+    L('pantalla', xsc, cy - hs - 30, K.dim); L('recuento', (hx + LW * 0.955) / 2, cy - hs - 30, K.dim);
+    if (mode === 3) L('detector', xb + 60, cy + 0.1 * LH, K.yel);
+    if (!g.land) { const [x, y] = P(xs, cy); dot(c, x, y, 8, K.white, { halo: 4 }); } else dot(c, xs, cy, 8, K.white, { halo: 4 });
+    return { hud: [{ t: `Electrones registrados: ${done.length}`, c: '#8fe9ff' }].concat(mode === 3 ? [{ t: 'Se registra por qué rendija pasa cada uno', c: '#ffe066' }] : []) };
+  }
+  S2({ id: 'rendijas', cat: 'Física', title: 'Doble rendija: el electrón como «figura»',
+    info: { muestra: 'El experimento de la doble rendija con electrones enviados de a uno. Cada electrón llega a la pantalla como un punto; la suma de muchos puntos dibuja franjas de interferencia, como si cada uno hubiera pasado por las dos rendijas. Si se registra por cuál pasa, las franjas desaparecen.',
+      lectura: 'Lacan usa este experimento como figura: el electrón que pasa a la vez por dos agujeros separados «pasa como el mismo electrón». El libro lo clasifica como metáfora: la física ilustra una tesis (la división del sujeto) que se demuestra por otras vías.',
+      libro: 'Cap. 1 (sobre la dualidad onda-partícula y la tabla de usos de la física); cap. 2 (la prueba del cambio de nombre: modelo o metáfora). Lacan, Seminario 17, p. 55.', estatuto: 'Física exacta. Su uso en psicoanálisis: metáfora (cap. 1).' },
+    views: [
+      { id: 'una', name: 'Una rendija', dur: 16, draw: g => Object.assign(frame(g, 1), { cap: phaseCap(g.t, [[0, 'Electrones enviados de a uno contra una sola rendija.'], [0.3, 'Cada uno llega como un punto. La suma dibuja una sola mancha central.']]) }) },
+      { id: 'dos', name: 'Dos rendijas', dur: 20, draw: g => Object.assign(frame(g, 2), { cap: phaseCap(g.t, [[0, 'Dos rendijas abiertas. Cada electrón sigue llegando como un punto.'], [0.35, 'Pero los puntos evitan ciertas franjas: aparece la interferencia de dos ondas.'], [0.82, 'Lacan: el electrón «pasa como el mismo electrón» por los dos agujeros. El libro lo lee como figura, no como modelo.']]) }) },
+      { id: 'detector', name: 'Con detector', dur: 18, draw: g => Object.assign(frame(g, 3), { cap: phaseCap(g.t, [[0, 'Ahora un detector registra por qué rendija pasa cada electrón.'], [0.4, 'Las franjas desaparecen: quedan dos manchas superpuestas.'], [0.82, 'Registrar el paso cambia lo que se observa en la pantalla.']]) }) }
+    ] });
+})();
+
+// ============================================================================ Galileo: plano inclinado
+(() => {
+  S2({ id: 'galileo', cat: 'Física', title: 'Galileo: el plano inclinado',
+    info: { muestra: 'Una bola rueda por un plano inclinado. En tiempos iguales recorre distancias que crecen como los impares 1, 3, 5, 7…; la distancia total crece como el cuadrado del tiempo.',
+      lectura: 'La ley no describe la piedra: la escribe. Es el paso de la cualidad a la fórmula que, para el libro, define la ciencia moderna: cada paso de la física pierde intuición y gana escritura.',
+      libro: 'Cap. 1 (Figuras 1.12 y 1.13; periodización de la ciencia: Galileo y Descartes).', estatuto: 'Modelo: ley física exacta (Galileo, 1638).' },
+    views: [
+      { id: 'plano', name: 'Tiempos iguales', dur: 14, draw(g) {
+        const c = g.c, { W, H, land } = g, n = 5, tt = 5 * easeSeg(g.t, 0.06, 0.86);
+        const [bx, by, bw, bh] = land ? [60, 120, W * 0.6, H * 0.62] : [40, 110, W - 80, H * 0.42];
+        const x0 = bx + 30, y0 = by + 20, x1 = bx + bw, y1 = by + bh, Lp = Math.hypot(x1 - x0, y1 - y0), ux = (x1 - x0) / Lp, uy = (y1 - y0) / Lp, nx = uy, ny = -ux;
+        c.fillStyle = 'rgba(120,140,255,.10)'; c.beginPath(); c.moveTo(x0, y0); c.lineTo(x1, y1); c.lineTo(x0, y1); c.closePath(); c.fill();
+        ln(c, [[x0, y0], [x1, y1]], '#c9cfe8', 5); ln(c, [[x0, y1], [x1, y1]], K.faint, 2);
+        const s = k => Lp * 0.96 * (k / n) ** 2, cols = [K.cyan, K.grn, K.yel, K.orange, K.red];
+        for (let k = 1; k <= n; k++) { if (tt < k - 1) break; const a = s(k - 1), b = s(Math.min(k, tt)), off = 26;
+          ln(c, [[x0 + ux * a + nx * off, y0 + uy * a + ny * off], [x0 + ux * b + nx * off, y0 + uy * b + ny * off]], cols[k - 1], 7);
+          if (tt >= k) { const m = (a + b) / 2; tx(c, String(2 * k - 1), x0 + ux * m + nx * 60, y0 + uy * m + ny * 60, { s: 34, w: 800, col: cols[k - 1] }); }
+          const p = s(k - 1); ln(c, [[x0 + ux * p - nx * 10, y0 + uy * p - ny * 10], [x0 + ux * p + nx * 40, y0 + uy * p + ny * 40]], K.faint, 2); }
+        const sb = s(tt), r = 22, bxp = x0 + ux * sb + nx * r, byp = y0 + uy * sb + ny * r; dot(c, bxp, byp, r, '#f4f6ff', { halo: 2.2 });
+        const ang = sb / r; ln(c, [[bxp, byp], [bxp + Math.cos(ang) * r, byp + Math.sin(ang) * r]], '#3a3f6a', 4);
+        const tick = tt % 1; if (tt > 0.02 && tick < 0.12 && tt < 5) dot(c, bxp, byp, r + 18 * tick / 0.12, K.yel, { al: 1 - tick / 0.12 });
+        // tabla
+        const [tx0, ty0, tw] = land ? [W * 0.7, 150, W * 0.27] : [40, H * 0.6, W - 80];
+        box(c, tx0, ty0, tw, 80 + 5 * 56, { title: 'Lo que se escribe' });
+        tx(c, 'tiempo', tx0 + tw * 0.18, ty0 + 70, { s: 22, col: K.dim }); tx(c, 'en ese tramo', tx0 + tw * 0.5, ty0 + 70, { s: 22, col: K.dim }); tx(c, 'total', tx0 + tw * 0.82, ty0 + 70, { s: 22, col: K.dim });
+        for (let k = 1; k <= Math.floor(tt + 1e-6) && k <= n; k++) { const y = ty0 + 70 + k * 52;
+          tx(c, String(k), tx0 + tw * 0.18, y, { s: 30, w: 700 }); tx(c, String(2 * k - 1), tx0 + tw * 0.5, y, { s: 30, w: 700, col: cols[k - 1] }); tx(c, `${k * k} = ${k}²`, tx0 + tw * 0.82, y, { s: 30, w: 700, col: K.yel }); }
+        return { hud: [{ t: `Tiempo: ${tt.toFixed(1)}`, c: '#ffe066' }], cap: phaseCap(g.t, [[0, 'Una bola rueda por el plano. Marcamos dónde está en tiempos iguales.'], [0.35, 'En cada intervalo recorre 1, 3, 5, 7, 9 unidades: los números impares.'], [0.86, 'La distancia total es el cuadrado del tiempo. La ley no describe la piedra: la escribe.']]) };
+      } },
+      { id: 'cuadrados', name: 'Impares y cuadrados', dur: 12, draw(g) {
+        const c = g.c, { W, H, land } = g, n = 5, kk = 5 * easeSeg(g.t, 0.05, 0.8), cols = [K.cyan, K.grn, K.yel, K.orange, K.red];
+        const [ax, ay, aw] = land ? [110, 150, H * 0.62] : [W / 2 - 300, 130, 600], u = aw / n;
+        for (let k = 1; k <= n; k++) { const al = clamp(kk - (k - 1)); if (al <= 0) break;
+          for (let i = 0; i < k; i++) for (let j = 0; j < k; j++) { if (i < k - 1 && j < k - 1) continue; c.globalAlpha = al; c.fillStyle = cols[k - 1]; c.beginPath(); c.roundRect(ax + i * u + 4, ay + aw - (j + 1) * u + 4, u - 8, u - 8, 8); c.fill(); c.globalAlpha = 1; }
+          tx(c, `+${2 * k - 1}`, ax + aw + 50, ay + aw - (k - 0.5) * u, { s: 30, w: 800, col: cols[k - 1], al }); }
+        const m = Math.min(n, Math.floor(kk + 1e-6)); if (m > 0) tx(c, Array.from({ length: m }, (_, i) => 2 * i + 1).join(' + ') + ` = ${m * m} = ${m}²`, ax + aw / 2, ay + aw + 60, { s: 34, w: 700, col: K.txt });
+        const [gx, gy, gw, gh] = land ? [W * 0.56, 150, W * 0.38, H * 0.6] : [70, H * 0.58, W - 120, H * 0.3];
+        ln(c, [[gx, gy], [gx, gy + gh], [gx + gw, gy + gh]], K.faint, 2); tx(c, 'tiempo', gx + gw, gy + gh + 34, { s: 22, col: K.dim, a: 'right' }); tx(c, 'distancia', gx - 10, gy - 22, { s: 22, col: K.dim, a: 'left' });
+        const pts = []; for (let i = 0; i <= 100; i++) { const t = 5 * i / 100; if (t > kk) break; pts.push([gx + gw * t / 5, gy + gh - gh * t * t / 25]); } ln(c, pts, K.yel, 4, { glow: 10 });
+        for (let k = 1; k <= m; k++) { dot(c, gx + gw * k / 5, gy + gh - gh * k * k / 25, 8, cols[k - 1], { halo: 3 }); tx(c, String(k * k), gx + gw * k / 5 - 26, gy + gh - gh * k * k / 25 - 22, { s: 24, w: 700, col: cols[k - 1] }); }
+        return { cap: phaseCap(g.t, [[0, 'Cada nuevo tramo impar se agrega como una escuadra al cuadrado anterior.'], [0.5, '1 + 3 + 5 + … + (2n − 1) = n²: la suma de los impares es un cuadrado.'], [0.8, 'Por eso la distancia crece como el cuadrado del tiempo: una parábola.']]) };
+      } }
+    ] });
+})();
+
+// ============================================================================ Kepler: gira / cae
+(() => {
+  const E = 0.62, kep = M => { let e = M; for (let i = 0; i < 12; i++) e -= (e - E * Math.sin(e) - M) / (1 - E * Math.cos(e)); return e; };
+  const orb = (M, a, b) => { const e = kep(M); return [a * (Math.cos(e) - E), b * Math.sin(e)]; }; // foco en el origen
+  S2({ id: 'kepler', cat: 'Física', title: 'Kepler y Newton: del «gira» al «cae»',
+    info: { muestra: 'Tres maneras de escribir el movimiento de un planeta: un centro fijo (Ptolomeo, Copérnico), una elipse con dos focos (Kepler) y una fuerza que hace caer al planeta hacia un foco (Newton).',
+      lectura: 'Para Eidelsztein, Copérnico no subvierte porque conserva un centro; Kepler sí, porque la elipse tiene dos focos y ningún centro. El texto de Lacan dice algo más preciso: la subversión está en haber sustituido un «gira» por un «cae», y en el foco simétrico «no hay nada». El «cae» toma su poder de la fórmula de Newton.',
+      libro: 'Cap. 2 (§ 8, «Subversión sin centro: Ptolomeo, Copérnico, Kepler»). Lacan, Seminario 20, clase del 16-1-73, p. 30.', estatuto: 'Física exacta (leyes de Kepler, gravitación de Newton); su uso como subversión es del texto de Lacan.' },
+    views: [
+      { id: 'centros', name: 'Centro y focos', dur: 14, draw(g) {
+        const c = g.c, ph = TAU * g.T / 7, out = {};
+        const titles = ['Ptolomeo: la Tierra en el centro', 'Copérnico: el Sol en el centro', 'Kepler: dos focos, ningún centro'];
+        for (let i = 0; i < 3; i++) { const [x, y, w, h] = cell(g, 3, i, 22, 0); box(c, x, y, w, h, { title: titles[i], ts: 21, tc: i === 2 ? K.yel : K.dim });
+          const cx = x + w / 2, cy = y + h / 2 + 18, R = Math.min(w, h) * 0.32;
+          if (i < 2) { c.strokeStyle = K.faint; c.lineWidth = 2; c.beginPath(); c.arc(cx, cy, R, 0, TAU); c.stroke();
+            dot(c, cx, cy, i ? 16 : 12, i ? K.yel : K.blue, { halo: 3 }); tx(c, i ? 'Sol' : 'Tierra', cx, cy + 34, { s: 20, col: K.dim });
+            let px = cx + R * Math.cos(ph), py = cy - R * Math.sin(ph);
+            if (i === 0) { c.strokeStyle = 'rgba(255,255,255,.18)'; c.beginPath(); c.arc(px, py, R * 0.24, 0, TAU); c.stroke(); px += R * 0.24 * Math.cos(ph * 4); py -= R * 0.24 * Math.sin(ph * 4); }
+            dot(c, px, py, 9, K.cyan, { halo: 3 }); }
+          else { const a = R * 1.15, b = a * Math.sqrt(1 - E * E), fx = cx + a * E / 2; const pts = []; for (let k = 0; k <= 120; k++) { const q = orb(TAU * k / 120, a, b); pts.push([fx + q[0], cy - q[1]]); } ln(c, pts, K.faint, 2, { close: true });
+            dot(c, fx, cy, 14, K.yel, { halo: 3 }); tx(c, 'Sol (foco)', fx, cy + 32, { s: 20, col: K.dim }); const ex = fx - 2 * a * E; ln(c, [[ex - 10, cy - 10], [ex + 10, cy + 10]], K.red, 3); ln(c, [[ex - 10, cy + 10], [ex + 10, cy - 10]], K.red, 3);
+            tx(c, 'foco vacío: «no hay nada»', ex, cy + 32, { s: 20, col: K.red }); const q = orb(ph, a, b); dot(c, fx + q[0], cy - q[1], 9, K.cyan, { halo: 3 }); } }
+        return { cap: phaseCap(g.t, [[0, 'Ptolomeo y Copérnico cambian el centro, pero conservan un centro.'], [0.45, 'La elipse de Kepler tiene dos focos: el Sol ocupa uno; en el otro no hay nada.']]) };
+      } },
+      { id: 'areas', name: 'Áreas iguales', dur: 16, draw(g) {
+        const c = g.c, { W, H, land } = g, a = land ? H * 0.42 : W * 0.44, b = a * Math.sqrt(1 - E * E), fx = W / 2 + a * E, fy = land ? H * 0.5 : H * 0.42;
+        const P = M => { const q = orb(M, a, b); return [fx + q[0], fy - q[1]]; }, ns = 12, M = TAU * 1.25 * easeSeg(g.t, 0.03, 0.97);
+        for (let k = 0; k < ns; k++) { const m0 = TAU * k / ns; if (m0 > M) break; const m1 = Math.min(M, TAU * (k + 1) / ns); c.beginPath(); c.moveTo(fx, fy);
+          for (let i = 0; i <= 30; i++) { const p = P(m0 + (m1 - m0) * i / 30); c.lineTo(p[0], p[1]); } c.closePath(); c.fillStyle = k % 2 ? 'rgba(64,230,255,.22)' : 'rgba(180,140,255,.22)'; c.fill(); }
+        const pts = []; for (let i = 0; i <= 160; i++) pts.push(P(TAU * i / 160)); ln(c, pts, 'rgba(255,255,255,.35)', 2, { close: true });
+        dot(c, fx, fy, 18, K.yel, { halo: 3.5 });
+        const p = P(M), p2 = P(M + 0.01), vx = (p2[0] - p[0]) / 0.01, vy = (p2[1] - p[1]) / 0.01, sp = Math.hypot(vx, vy), r = Math.hypot(fx - p[0], fy - p[1]);
+        arr(c, p[0], p[1], p[0] + vx * 0.28, p[1] + vy * 0.28, K.grn, 5, { glow: 10 }); const fl = 70 * (a * 0.5 / r) ** 2 * 2.2; arr(c, p[0], p[1], p[0] + (fx - p[0]) / r * Math.min(fl, r - 30), p[1] + (fy - p[1]) / r * Math.min(fl, r - 30), K.red, 5, { glow: 10 });
+        dot(c, p[0], p[1], 12, K.cyan, { halo: 3 });
+        return { hud: [{ t: 'Verde: velocidad · Rojo: fuerza hacia el foco', c: '#d6dcff' }, { t: `Rapidez relativa: ${(sp / (TAU * a / 16 * 1.0)).toFixed(2)}`, c: '#7cf09a' }],
+          cap: phaseCap(g.t, [[0, 'Cada sector se barre en el mismo tiempo: áreas iguales en tiempos iguales.'], [0.4, 'Cerca del Sol el planeta va más rápido; lejos, más lento.'], [0.7, 'La fuerza apunta siempre al foco ocupado: el planeta no gira alrededor de un centro, cae hacia un foco.']]) };
+      } },
+      { id: 'cae', name: 'Gira y cae', dur: 16, draw(g) {
+        const c = g.c, { W, H, land } = g, cx = land ? W * 0.4 : W / 2, cy = land ? H * 0.5 : H * 0.4, R = land ? H * 0.34 : W * 0.38, n = 14, kk = n * easeSeg(g.t, 0.05, 0.78);
+        dot(c, cx, cy, 20, K.yel, { halo: 3.5 }); tx(c, 'Sol', cx, cy + 40, { s: 22, col: K.dim });
+        const th = k => TAU * k / n, Pk = k => [cx + R * Math.cos(th(k)), cy - R * Math.sin(th(k)) ];
+        c.strokeStyle = 'rgba(255,255,255,.12)'; c.lineWidth = 2; c.beginPath(); c.arc(cx, cy, R, 0, TAU); c.stroke();
+        const poly = [Pk(0)];
+        for (let k = 0; k < Math.floor(kk); k++) { const p = Pk(k), q = Pk(k + 1), pr = k > 0 ? Pk(k - 1) : [p[0] - (Pk(1)[0] - p[0]) * 0 + (cx - p[0]) * 0, p[1]];
+          const inert = k > 0 ? [2 * p[0] - pr[0], 2 * p[1] - pr[1]] : [p[0] + (q[0] - p[0]) - (cx - p[0]) * (1 - Math.cos(TAU / n)), p[1] + (q[1] - p[1]) - (cy - p[1]) * (1 - Math.cos(TAU / n))];
+          ln(c, [p, inert], 'rgba(124,240,154,.7)', 3, { dash: [10, 8] }); arr(c, inert[0], inert[1], q[0], q[1], K.red, 4); poly.push(q); }
+        ln(c, poly, K.cyan, 4, { glow: 8 }); const cur = Pk(Math.floor(kk)); dot(c, cur[0], cur[1], 12, K.cyan, { halo: 3 });
+        const fa = easeSeg(g.t, 0.8, 0.92);
+        if (fa > 0) { const [fxp, fyp] = land ? [W * 0.8, H * 0.5] : [W / 2, H * 0.83]; box(c, fxp - 230, fyp - 90, 460, 180, { al: fa, stroke: 'rgba(255,216,74,.5)' });
+          tx(c, 'F = G · m · m′ / d²', fxp, fyp - 12, { s: 48, w: 600, serif: true, it: true, col: K.yel, al: fa }); tx(c, 'cinco letras y una cifra (Lacan)', fxp, fyp + 52, { s: 22, col: K.dim, al: fa }); }
+        if (land) { tx(c, '— — inercia: seguiría recto', W * 0.8, H * 0.16, { s: 22, col: '#7cf09a' }); tx(c, '→ caída hacia el Sol', W * 0.8, H * 0.22, { s: 22, col: K.red }); }
+        return { cap: phaseCap(g.t, [[0, 'Newton: en cada instante el planeta seguiría recto (verde) y cae hacia el Sol (rojo).'], [0.4, 'La órbita es una caída que no termina: el «gira» queda sustituido por un «cae».'], [0.8, 'Lacan: el «cae» toma su poder de subversión de la fórmula de Newton.']]) };
+      } }
+    ] });
+})();
+
+// ============================================================================ Energía: Feynman, Noether, 80 kilos
+(() => {
+  // los 28 cubos: lugares 0 = a la vista, 1 = caja cerrada, 2 = bañera, 3 = jardín
+  const EV = [[0.10, 0.18, 0, 3, 2], [0.24, 0.32, 0, 1, 3], [0.38, 0.46, 3, 0, 1], [0.52, 0.60, 0, 2, 2], [0.66, 0.74, 1, 0, 2], [0.80, 0.88, 0, 3, 1]];
+  const START = [23, 2, 3, 0];
+  S2({ id: 'energia', cat: 'Física', title: 'Energía: la cifra que se conserva',
+    info: { muestra: 'Tres escenas de la conservación de la energía: los 28 cubos de Feynman, el teorema de Noether (simetría en el tiempo, energía conservada) y el ejemplo de Lacan de los 80 kilos llevados 500 metros abajo y vueltos a subir.',
+      lectura: 'La ciencia no trabaja con cosas sino con una cifra que se conserva a través de sus transformaciones: la energética «es eso, sólo que no hay cubos». Lacan extrae de ahí el objeto de la ciencia como falta. Y con los 80 kilos muestra que la cuenta energética registra diferencias: el gasto del que carga no figura en ella; es pérdida, entropía.',
+      libro: 'Cap. 1 (E.2, los veintiocho cubos de Feynman, Seminario 13, clase 2); cap. 3 (§ 3.3, Noether); cap. 18 (E.2, «Ochenta kilos, quinientos metros», Seminario 17, p. 26).', estatuto: 'Física exacta. Energía como cifra conservada: modelo del objeto de la ciencia como falta; la termodinámica aplicada al goce: analogía estructural de la forma de la cuenta (cap. 18).' },
+    views: [
+      { id: 'cubos', name: 'Los 28 cubos', dur: 18, draw(g) {
+        const c = g.c, { W, H, land } = g, t = g.t, cnt = START.slice(); let fly = [];
+        for (const [a, b, from, to, n] of EV) { if (t >= b) { cnt[from] -= n; cnt[to] += n; } else if (t >= a) fly.push({ p: easeSeg(t, a, b), from, to, n }); }
+        const [rx, ry, rw, rh] = land ? [30, 30, W * 0.6, H - 60] : [24, 24, W - 48, H * 0.58];
+        box(c, rx, ry, rw, rh, { title: 'La habitación' });
+        const spots = [[rx + rw * 0.05, ry + rh * 0.13, rw * 0.52, rh * 0.5], [rx + rw * 0.62, ry + rh * 0.12, rw * 0.3, rh * 0.26], [rx + rw * 0.6, ry + rh * 0.56, rw * 0.34, rh * 0.32], [rx + rw * 0.05, ry + rh * 0.7, rw * 0.5, rh * 0.22]];
+        const cs = Math.min(rw * 0.5 / 8, rh * 0.5 / 3.6) * 0.82, pos = (place, i) => { const [x, y, w, h] = spots[place];
+          if (place === 0) return [x + (i % 7) * cs * 1.18 + cs * 0.2, y + Math.floor(i / 7) * cs * 1.18 + cs * 0.6];
+          if (place === 3) return [x + 24 + i * cs * 1.15, y + h * 0.55 - cs * 0.45];
+          return [x + w * 0.5 - cs * 1.5 + (i % 3) * cs, y + h * 0.55 - Math.floor(i / 3) * cs * 0.8]; };
+        const cube = (x, y, col, al = 1) => { c.globalAlpha = al; c.fillStyle = col; c.beginPath(); c.roundRect(x, y, cs * 0.9, cs * 0.9, 6); c.fill(); c.strokeStyle = 'rgba(255,255,255,.4)'; c.lineWidth = 1.5; c.stroke(); c.globalAlpha = 1; };
+        for (let i = 0; i < cnt[0]; i++) { const p = pos(0, i); cube(p[0], p[1], '#ffb84a'); }
+        // caja cerrada sobre balanza
+        const [bx, by, bw, bh] = spots[1]; c.fillStyle = '#3a2a5c'; c.fillRect(bx + bw * 0.2, by + bh * 0.2, bw * 0.6, bh * 0.5); c.strokeStyle = '#b48cff'; c.lineWidth = 3; c.strokeRect(bx + bw * 0.2, by + bh * 0.2, bw * 0.6, bh * 0.5);
+        tx(c, 'caja cerrada', bx + bw * 0.5, by + bh * 0.08, { s: 20, col: K.vio }); const wgt = 0.2 + 0.1 * cnt[1];
+        box(c, bx + bw * 0.15, by + bh * 0.78, bw * 0.7, bh * 0.26, { r: 10, fill: 'rgba(0,0,0,.4)' }); tx(c, `balanza: ${wgt.toFixed(1).replace('.', ',')} kg`, bx + bw * 0.5, by + bh * 0.91, { s: 20, w: 700, col: K.vio });
+        // bañera con agua turbia
+        const [tbx, tby, tbw, tbh] = spots[2], lvl = 0.35 + 0.06 * cnt[2]; c.fillStyle = 'rgba(90,110,140,.85)'; c.fillRect(tbx, tby + tbh * (1 - lvl), tbw, tbh * lvl);
+        ln(c, [[tbx, tby], [tbx, tby + tbh], [tbx + tbw, tby + tbh], [tbx + tbw, tby]], '#cfd6f0', 5); tx(c, 'bañera (agua sucia)', tbx + tbw / 2, tby - 22, { s: 20, col: '#9fb4d8' });
+        tx(c, `nivel: ${(10 * lvl).toFixed(1).replace('.', ',')} cm`, tbx + tbw / 2, tby + tbh + 26, { s: 20, w: 700, col: '#9fb4d8' });
+        // ventana y jardín
+        { const [gx, gy, gw, gh] = spots[3]; c.fillStyle = 'rgba(92,242,140,.10)'; c.fillRect(gx, gy, gw, gh); c.strokeStyle = 'rgba(92,242,140,.55)'; c.lineWidth = 3; c.strokeRect(gx, gy, gw, gh);
+          ln(c, [[gx + gw / 2, gy], [gx + gw / 2, gy + gh]], 'rgba(92,242,140,.35)', 2); tx(c, 'jardín, visto por la ventana', gx + gw / 2, gy - 22, { s: 20, col: K.grn }); }
+        for (let i = 0; i < cnt[3]; i++) { const p = pos(3, i); cube(p[0], p[1], '#5cf28c'); }
+        // cubos en vuelo
+        for (const f of fly) for (let j = 0; j < f.n; j++) { const a = f.from === 0 ? pos(0, cnt[0] - 1 - j) : f.from === 3 ? pos(3, cnt[3] - 1 - j) : [spots[f.from][0] + spots[f.from][2] / 2, spots[f.from][1] + spots[f.from][3] / 2];
+          const b = f.to === 0 ? pos(0, cnt[0] + j) : f.to === 3 ? pos(3, cnt[3] + j) : [spots[f.to][0] + spots[f.to][2] / 2, spots[f.to][1] + spots[f.to][3] / 2];
+          const q = f.p, x = lerp(a[0], b[0], q), y = lerp(a[1], b[1], q) - Math.sin(PI * q) * 120; cube(x, y, '#ffffff', 0.95); }
+        // la cuenta
+        const [kx, ky, kw, kh] = land ? [W * 0.64, 30, W * 0.34, H - 60] : [24, H * 0.62, W - 48, H * 0.36];
+        box(c, kx, ky, kw, kh, { title: 'La cuenta de la madre', stroke: 'rgba(255,216,74,.35)' });
+        const rows = [['a la vista', cnt[0], '#ffb84a'], ['(balanza − 0,2 kg) / 0,1 kg', cnt[1], K.vio], ['(nivel − 3,5 cm) / 0,6 cm', cnt[2], '#9fb4d8'], ['en el jardín', cnt[3], K.grn]];
+        const lh = kh / (land ? 8.2 : 7.4);
+        rows.forEach(([s, v, col], i) => { const y = ky + lh * (1.5 + i); tx(c, (i ? '+ ' : '  ') + s, kx + 26, y, { a: 'left', s: land ? 22 : 24, col }); tx(c, String(v), kx + kw - 30, y, { a: 'right', s: 34, w: 800, col }); });
+        ln(c, [[kx + 26, ky + lh * 5.25], [kx + kw - 26, ky + lh * 5.25]], 'rgba(255,255,255,.4)', 2);
+        tx(c, '=', kx + 26, ky + lh * 6, { a: 'left', s: 34, col: K.yel }); tx(c, String(cnt.reduce((a, b) => a + b, 0)), kx + kw - 30, ky + lh * 6, { a: 'right', s: 54, w: 800, col: K.yel, glow: 14 });
+        if (land) tx(c, '«sólo que no hay cubos»', kx + kw / 2, ky + lh * 7.3, { s: 26, it: true, serif: true, col: K.txt, al: easeSeg(t, 0.85, 0.95) });
+        return { hud: [{ t: `Cubos a la vista: ${cnt[0]}`, c: '#ffcf80' }], cap: phaseCap(t, [[0, 'Un niño tiene 28 cubos. La madre no siempre los ve todos.'], [0.2, 'Los que faltan se infieren: por el peso de la caja, por el nivel del agua, por la ventana.'], [0.55, 'Con la fórmula completa el resultado es siempre 28: una cifra que se conserva.'], [0.86, 'Feynman: la energía «es eso, sólo que no hay cubos». Lacan: el objeto de la ciencia como falta.']]) };
+      } },
+      { id: 'noether', name: 'Noether: simetría y conservación', dur: 14, draw(g) {
+        const c = g.c, { W, H, land } = g, th0 = 0.85, w = TAU / 3.2, th = tt => th0 * Math.cos(w * tt), dly = 1.6;
+        const panels = [['El experimento hoy', 0], ['El mismo experimento, más tarde', dly]];
+        panels.forEach(([ttl, d], i) => { const [x, y, ww, hh] = land ? [24 + i * (W * 0.33 + 12), 24, W * 0.33, H * 0.62] : [24, 24 + i * (H * 0.3 + 12), W - 48, H * 0.3];
+          box(c, x, y, ww, hh, { title: ttl }); const T = Math.max(0, g.T - d), px = x + ww / 2, py = y + hh * 0.2, Lr = hh * 0.6, a = g.T < d ? th0 : th(T);
+          ln(c, [[px - 60, py], [px + 60, py]], '#c9cfe8', 5); const bx = px + Lr * Math.sin(a), by = py + Lr * Math.cos(a); ln(c, [[px, py], [bx, by]], '#c9cfe8', 3); dot(c, bx, by, 22, i ? K.cyan : K.pink, { halo: 2.5 });
+          const cx = x + ww - 64, cyy = y + 66; c.strokeStyle = K.dim; c.lineWidth = 3; c.beginPath(); c.arc(cx, cyy, 30, 0, TAU); c.stroke(); const ang = (g.T + (i ? 0 : 0)) * 0.9 - PI / 2;
+          ln(c, [[cx, cyy], [cx + 24 * Math.cos(ang), cyy + 24 * Math.sin(ang)]], K.txt, 3); tx(c, i ? `t + ${dly.toFixed(1).replace('.', ',')} s` : 't', cx, cyy + 48, { s: 20, col: K.dim }); });
+        const a = th(g.T), U = 1 - Math.cos(a), Em = 1 - Math.cos(th0), Kc = Em - U;
+        const [ex, ey, ew, eh] = land ? [W * 0.69, 24, W * 0.29, H * 0.62] : [24, H * 0.62 + 12, W - 48, H * 0.36 - 36];
+        box(c, ex, ey, ew, eh, { title: 'Energía (péndulo de la izquierda)' });
+        const bars = [['cinética', Kc / Em, K.cyan], ['potencial', U / Em, K.pink], ['total', 1, K.yel]], bw = ew / 5, base = ey + eh - 56, bh = eh - 140;
+        bars.forEach(([n, v, col], i) => { const x = ex + bw * (0.8 + i * 1.4); c.fillStyle = col; c.shadowColor = col; c.shadowBlur = 12; c.fillRect(x, base - bh * v, bw, bh * v); c.shadowBlur = 0; tx(c, n, x + bw / 2, base + 26, { s: 20, col: K.dim }); });
+        const [qx, qy] = land ? [W * 0.5, H * 0.82] : [W / 2, H * 0.98 - 20];
+        if (land) { box(c, 24, H * 0.67, W - 48, H * 0.3, { fill: 'rgba(14,16,40,.4)' });
+          tx(c, 'Si las leyes no cambian cuando se desplaza el tiempo, se conserva una magnitud: la energía.', qx, qy - 26, { s: 28, w: 600 }); tx(c, 'Lo que se conserva es la sombra de una simetría (Noether, 1918; cap. 3, § 3.3).', qx, qy + 24, { s: 26, it: true, serif: true, col: K.yel }); }
+        return { hud: [{ t: `Energía total: ${(1).toFixed(3).replace('.', ',')} (constante)`, c: '#ffe066' }], cap: phaseCap(g.t, [[0, 'El mismo experimento, hecho ahora o más tarde, ocurre de la misma manera: las leyes son simétricas en el tiempo.'], [0.5, 'Noether: a esa simetría le corresponde una cantidad conservada. La cinética y la potencial cambian; su suma no.']]) };
+      } },
+      { id: 'ochenta', name: 'Ochenta kilos, quinientos metros', dur: 16, draw(g) {
+        const c = g.c, { W, H, land } = g, t = g.t, p = easeSeg(t, 0.05, 0.85), h = p < 0.5 ? 1 - ease(p * 2) : ease((p - 0.5) * 2);
+        const [mx, my, mw, mh] = land ? [30, 40, W * 0.5, H - 80] : [24, 24, W - 48, H * 0.42];
+        box(c, mx, my, mw, mh, { title: '500 m abajo y de vuelta arriba' });
+        const X = s => mx + mw * (0.12 + 0.76 * s), Y = s => my + mh * (0.22 + 0.62 * s), path = []; for (let i = 0; i <= 60; i++) { const s = i / 60; path.push([X(s), Y(s) + Math.sin(s * 9) * 8]); }
+        c.fillStyle = 'rgba(120,140,255,.08)'; c.beginPath(); c.moveTo(path[0][0], path[0][1]); path.forEach(q => c.lineTo(q[0], q[1])); c.lineTo(X(1), my + mh - 12); c.lineTo(X(0), my + mh - 12); c.closePath(); c.fill(); ln(c, path, '#c9cfe8', 4);
+        const s = 1 - h, wx = X(s), wy = Y(s) + Math.sin(s * 9) * 8; dot(c, wx, wy - 26, 16, K.pink, { halo: 2.5 }); c.fillStyle = '#ffb84a'; c.fillRect(wx - 22, wy - 76, 44, 30); tx(c, '80 kg', wx, wy - 61, { s: 16, w: 800, col: '#1a1530' });
+        tx(c, 'h = 500 m', X(0) - 10, Y(0) - 40, { s: 22, col: K.dim, a: 'left' }); tx(c, 'h = 0', X(1), Y(1) + 34, { s: 22, col: K.dim });
+        // gráficos
+        const gb = (i) => land ? [W * 0.55 + 10, 40 + i * (H - 80) / 2 + (i ? 10 : 0), W * 0.43, (H - 80) / 2 - 10] : [24, H * 0.45 + i * (H * 0.27) + 8, W - 48, H * 0.26];
+        const [ax, ay, aw, ah] = gb(0); box(c, ax, ay, aw, ah, { title: 'Energía potencial U = m g h' });
+        const ptsU = []; for (let i = 0; i <= 100; i++) { const q = i / 100; if (q > p + 1e-9) break; const hh = q < 0.5 ? 1 - ease(q * 2) : ease((q - 0.5) * 2); ptsU.push([ax + 40 + (aw - 80) * q, ay + 60 + (ah - 110) * (1 - hh)]); }
+        ln(c, ptsU, K.cyan, 4, { glow: 8 }); ln(c, [[ax + 40, ay + 60], [ax + aw - 40, ay + 60]], K.faint, 1.5, { dash: [8, 8] });
+        tx(c, p < 0.5 ? `ΔU = −${Math.round(392 * ease(p * 2))} kJ` : `ΔU total = −392 + ${Math.round(392 * ease((p - 0.5) * 2))} = ${Math.round(392 * ease((p - 0.5) * 2)) - 392} kJ`, ax + aw - 30, ay + 30, { a: 'right', s: 22, w: 700, col: K.cyan });
+        const [bx2, by2, bw2, bh2] = gb(1); box(c, bx2, by2, bw2, bh2, { title: 'Gasto del que carga (no figura en la cuenta)' });
+        const ptsG = []; for (let i = 0; i <= 100; i++) { const q = i / 100; if (q > p + 1e-9) break; ptsG.push([bx2 + 40 + (bw2 - 80) * q, by2 + bh2 - 40 - (bh2 - 100) * (q * 0.85 + 0.15 * Math.sin(q * 6) ** 2) ]); }
+        ln(c, ptsG, K.red, 4, { glow: 8 });
+        return { hud: [{ t: 'm = 80 kg · g ≈ 9,8 m/s² · h = 500 m', c: '#d6dcff' }, { t: 'Cada tramo: 80 × 9,8 × 500 = 392 000 J', c: '#8fe9ff' }],
+          cap: phaseCap(t, [[0, 'Bajar 80 kilos 500 metros sobre la espalda y volver a subirlos.'], [0.5, 'Para la energética el ciclo «da cero, ningún trabajo»: ΔU baja −392 kJ y sube +392 kJ.'], [0.86, 'Quien lo haga comprobará lo contrario: el gasto es pérdida, entropía. Lacan sitúa allí el acceso al goce.']]) };
+      } }
+    ] });
+})();
+
+// ============================================================================ Entropía: expansión libre
+(() => {
+  const N = 520, R = rng(11), PT = []; for (let i = 0; i < N; i++) { const a = R() * TAU, s = 0.12 + 0.2 * R(); PT.push([R() * 0.5, R(), Math.cos(a) * s, Math.sin(a) * s]); }
+  const tri = (x, L) => { x = ((x % (2 * L)) + 2 * L) % (2 * L); return x > L ? 2 * L - x : x; };
+  const T0 = 2.0;
+  const posAt = (p, T) => { if (T < T0) return [tri(p[0] + p[2] * T, 0.5), tri(p[1] + p[3] * T, 1)]; const x0 = tri(p[0] + p[2] * T0, 0.5), y0 = tri(p[1] + p[3] * T0, 1); return [tri(x0 + p[2] * (T - T0), 1), tri(y0 + p[3] * (T - T0), 1)]; };
+  const ent = T => { const nx = 10, ny = 5, h = new Array(nx * ny).fill(0); for (const p of PT) { const [x, y] = posAt(p, T); h[Math.min(nx - 1, Math.floor(x * nx)) + nx * Math.min(ny - 1, Math.floor(y * ny))]++; } let s = 0; for (const n of h) if (n) { const q = n / N; s -= q * Math.log(q); } return s / Math.log(nx * ny); };
+  function draw(g, rev) {
+    const c = g.c, { W, H, land } = g, Tend = 16, T = rev ? Tend - g.T * (Tend - T0 - 0.5) / g.dur : g.T;
+    const [bx, by, bw, bh] = land ? [60, 80, W * 0.56, H * 0.62] : [40, 70, W - 80, H * 0.36];
+    box(c, bx - 10, by - 10, bw + 20, bh + 20, { r: 10, fill: 'rgba(10,12,30,.7)', stroke: 'rgba(255,255,255,.35)', sw: 3 });
+    if (T < T0) { c.fillStyle = '#c9cfe8'; c.fillRect(bx + bw / 2 - 4, by - 10, 8, bh + 20); }
+    for (const p of PT) { const [x, y] = posAt(p, T); dot(c, bx + x * bw, by + y * bh, 5, x < 0.5 ? K.cyan : K.orange); }
+    const [gx, gy, gw, gh] = land ? [W * 0.66, 80, W * 0.31, H * 0.62] : [40, H * 0.5, W - 80, H * 0.3];
+    box(c, gx, gy, gw, gh, { title: 'Entropía (recuento grueso)' });
+    const x0 = gx + 50, y0 = gy + gh - 50, ww = gw - 80, hh = gh - 110; ln(c, [[x0, y0 - hh], [x0, y0], [x0 + ww, y0]], K.faint, 2);
+    const pts = [], n = 80; for (let i = 0; i <= n; i++) { const Ti = rev ? Tend - (Tend - T0 - 0.5) * i / n : Tend * i / n; if ((rev && Ti < T) || (!rev && Ti > T)) break; pts.push([x0 + ww * i / n, y0 - hh * ent(Ti)]); }
+    ln(c, pts, K.yel, 4, { glow: 10 }); tx(c, rev ? 'tiempo invertido →' : 'tiempo →', x0 + ww, y0 + 28, { a: 'right', s: 20, col: K.dim });
+    return { hud: [{ t: `Entropía relativa: ${ent(T).toFixed(2).replace('.', ',')}`, c: '#ffe066' }] };
+  }
+  S2({ id: 'entropia', cat: 'Física', title: 'Entropía: lo que no vuelve',
+    info: { muestra: 'Un gas encerrado en la mitad de una caja. Al quitar el tabique, las partículas se reparten por toda la caja y la entropía, medida con un recuento grueso, sube y se estabiliza. La película al revés es compatible con las leyes del movimiento, pero no se observa.',
+      lectura: 'La entropía escribe la degradación irreversible: lo que la cuenta de la energía no registra. Lacan dice que «el saber que trabaja produce, digamos, una entropía», y sitúa allí, en esa pérdida, el acceso regular al goce.',
+      libro: 'Cap. 18 (§ 10; E.2 y Figura 18.1). Lacan, Seminario 17, pp. 26-27.', estatuto: 'Física exacta (Boltzmann). Para el goce: analogía estructural de la forma de la cuenta, sin métrica (cap. 18).' },
+    views: [
+      { id: 'expansion', name: 'Expansión libre', dur: 16, draw: g => Object.assign(draw(g, false), { cap: phaseCap(g.t, [[0, 'El gas ocupa la mitad izquierda de la caja.'], [T0 / 16, 'Se quita el tabique: las partículas se mezclan y la entropía sube.'], [0.6, 'Llega a su máximo y se queda ahí: el proceso no vuelve solo.']]) }) },
+      { id: 'reves', name: 'Película al revés', dur: 14, draw: g => Object.assign(draw(g, true), { cap: phaseCap(g.t, [[0, 'La misma película, al revés: cada partícula invierte su velocidad.'], [0.55, 'Las leyes del movimiento lo permiten; nunca se observa. La flecha del tiempo es la de la entropía.']]) }) }
+    ] });
+})();
+
+// ============================================================================ Erlangen: grupos e invariantes
+(() => {
+  const fig = []; const sq = [[-1, -1], [1, -1], [1, 1], [-1, 1], [-1, -1]], circ = []; for (let i = 0; i <= 80; i++) circ.push([0.62 * Math.cos(TAU * i / 80), 0.62 * Math.sin(TAU * i / 80)]);
+  const dense = pts => { const o = []; for (let i = 0; i < pts.length - 1; i++) for (let k = 0; k < 20; k++) o.push([lerp(pts[i][0], pts[i + 1][0], k / 20), lerp(pts[i][1], pts[i + 1][1], k / 20)]); o.push(pts[pts.length - 1]); return o; };
+  fig.push([dense(sq), K.cyan], [circ, K.yel], [dense([[-1, -1], [1, 1]]), K.pink], [dense([[-1, 0.35], [1, 0.35]]), K.grn], [dense([[-1, -0.35], [1, -0.35]]), K.grn]);
+  const G = [
+    ['Geometría euclídea', 'giros y desplazamientos', 'distancias y ángulos ✓', (p, s) => { const a = 0.9 * s, x = p[0] * Math.cos(a) - p[1] * Math.sin(a), y = p[0] * Math.sin(a) + p[1] * Math.cos(a); return [x + 0.25 * s, y - 0.1 * s]; }],
+    ['Geometría afín', 'estiramientos, desplazamientos', 'paralelismo, razones sobre una recta ✓ · distancias ✗', (p, s) => [p[0] * (1 + 0.35 * s) + 0.55 * s * p[1], p[1] * (1 - 0.25 * s)]],
+    ['Geometría proyectiva', 'proyecciones desde un punto', 'incidencia, colinealidad, razón doble ✓ · paralelismo ✗', (p, s) => { const w = 1 + 0.32 * s * p[0] + 0.18 * s * p[1]; return [p[0] / w, (p[1] + 0.2 * s * p[0]) / w]; }],
+    ['Topología', 'deformaciones continuas y reversibles', 'bordes, orientabilidad, χ, enlaces ✓ · rectas ✗', (p, s) => [p[0] + 0.22 * s * Math.sin(2.3 * p[1] + 1) + 0.1 * s * Math.sin(5 * p[0]), p[1] + 0.25 * s * Math.sin(2.1 * p[0] + 0.5) + 0.08 * s * Math.cos(4 * p[1])]]];
+  S2({ id: 'erlangen', cat: 'Lógica y matemática', title: 'Erlangen: lo que un grupo deja fijo',
+    info: { muestra: 'La misma figura sometida a los grupos de cuatro geometrías. Cuantas más transformaciones admite el grupo, menos propiedades sobreviven.',
+      lectura: 'Felix Klein (1872) definió cada geometría por un grupo de transformaciones y por lo que ese grupo deja invariante. La topología admite toda deformación continua y reversible, y por eso conserva solo lo mínimo: bordes, orientabilidad, característica de Euler, enlaces. Es el sentido exacto en que la topología de Lacan retiene «solo» eso, y por eso resiste más transformaciones.',
+      libro: 'Cap. 3 (§ 3.2 y Figura 3.3: el programa de Erlangen; la covarianza como principio del libro). El grupo de Klein V₄ y los giros de los discursos (Z₄) son grupos en este mismo sentido.', estatuto: 'Resultado matemático.' },
+    views: [{ id: 'grupos', name: 'Cuatro grupos', dur: 14, draw(g) {
+      const c = g.c, s = Math.sin(PI * easeSeg((g.T % 7) / 7, 0.05, 0.95)) ** 1;
+      G.forEach(([ttl, grp, inv, f], i) => { const [x, y, w, h] = grid4(g, i); box(c, x, y, w, h, { title: ttl, tc: [K.cyan, K.grn, K.yel, K.pink][i] });
+        tx(c, 'grupo: ' + grp, x + 22, y + 60, { a: 'left', s: 19, col: K.dim }); tx(c, inv, x + w / 2, y + h - 26, { s: 19, w: 600, col: K.txt });
+        const cx = x + w / 2, cy = y + h / 2 + 4, sc = Math.min(w, h) * 0.22;
+        for (const [pts, col] of fig) ln(c, pts.map(p => { const q = f(p, s); return [cx + q[0] * sc, cy - q[1] * sc]; }), col, 3.2, { glow: 6 }); });
+      return { cap: phaseCap(g.t, [[0, 'La misma figura bajo cuatro grupos de transformaciones.'], [0.5, 'De la euclídea a la topología se admiten más transformaciones y se conservan menos propiedades.']]) };
+    } }] });
+})();
+
+// ============================================================================ Interruptor cuántico
+(() => {
+  S2({ id: 'interruptor', cat: 'Física', title: 'Interruptor cuántico: el orden indefinido',
+    info: { muestra: 'Un sistema de control decide en qué orden actúan dos operaciones, A y B, sobre un sistema objetivo. Si el control está en superposición, los dos órdenes («A antes de B» y «B antes de A») también lo están.',
+      lectura: 'Se puede querer leer aquí el après-coup, pero el interruptor no tiene retroacción de sentido: tiene superposición de órdenes. Lo que aporta es un argumento epistemológico: si el orden causal puede no ser una propiedad dada, el psicoanálisis no está obligado a pensar el tiempo como una línea de causas.',
+      libro: 'Cap. 24 (§ 1.1 y Figura 24.2; Goswami et al., 2018; Rubino et al., 2017).', estatuto: 'Física experimental. Para el psicoanálisis: argumento epistemológico, no modelo.' },
+    views: [{ id: 'ordenes', name: 'Dos órdenes a la vez', dur: 12, draw(g) {
+      const c = g.c, { W, H, land } = g, LW = land ? W : H, LH = land ? H : W, P = (a, b) => land ? [a, b] : [W - b, a];
+      const xc = 0.1 * LW, x1 = 0.36 * LW, x2 = 0.62 * LW, xo = 0.86 * LW, yt = LH * 0.28, yb = LH * 0.72, ym = LH / 2;
+      const top = [[xc, ym], [xc + 0.08 * LW, yt], [x1, yt], [x2, yt], [xo - 0.06 * LW, yt], [xo, ym]], bot = top.map(([a, b]) => [a, 2 * ym - b]);
+      const path = (pp, col) => ln(c, pp.map(q => P(...q)), col, 6, { glow: 14, al: 0.85 }); path(top, K.blue); path(bot, K.red);
+      const ph = (g.T % 4) / 4, along = (pp, s) => { const L = []; let tot = 0; for (let i = 0; i < pp.length - 1; i++) { const d = Math.hypot(pp[i + 1][0] - pp[i][0], pp[i + 1][1] - pp[i][1]); L.push(d); tot += d; } let r = s * tot; for (let i = 0; i < L.length; i++) { if (r <= L[i]) return [lerp(pp[i][0], pp[i + 1][0], r / L[i]), lerp(pp[i][1], pp[i + 1][1], r / L[i])]; r -= L[i]; } return pp[pp.length - 1]; };
+      const pt = along(top, ph), pb = along(bot, ph);
+      const gate = (a, b, lab, col, on) => { const [x, y] = P(a, b); box(c, x - 46, y - 46, 92, 92, { r: 16, fill: on ? col : 'rgba(14,16,40,.85)', stroke: col, sw: 4, glow: on ? 30 : 0 }); tx(c, lab, x, y + 2, { s: 44, w: 800, col: on ? '#0b0d1f' : col }); };
+      const near = (p, a, b) => Math.hypot(p[0] - a, p[1] - b) < 60;
+      gate(x1, yt, 'A', K.blue, near(pt, x1, yt)); gate(x2, yt, 'B', K.blue, near(pt, x2, yt)); gate(x1, yb, 'B', K.red, near(pb, x1, yb)); gate(x2, yb, 'A', K.red, near(pb, x2, yb));
+      dot(c, ...P(...pt), 13, '#cfe0ff', { halo: 4 }); dot(c, ...P(...pb), 13, '#ffd0d6', { halo: 4 });
+      const [cx, cy] = P(xc, ym); dot(c, cx, cy, 26, K.vio, { halo: 3 }); tx(c, 'control', cx, cy + (land ? 56 : 0) - (land ? 0 : 0), { s: 22, col: K.vio }); tx(c, '|0⟩ + |1⟩', cx, cy + (land ? 88 : 34), { s: 26, w: 700, serif: true, col: K.vio });
+      const [ox, oy] = P(xo, ym); dot(c, ox, oy, 26, K.yel, { halo: 3 }); tx(c, 'superposición de órdenes', ox + (land ? -10 : 0), oy + 58, { s: 22, col: K.yel, a: land ? 'right' : 'center' });
+      const [l1x, l1y] = P((x1 + x2) / 2, yt - 86), [l2x, l2y] = P((x1 + x2) / 2, yb + 86);
+      tx(c, 'si control = 0: primero A, después B', l1x, l1y, { s: 24, w: 600, col: K.blue }); tx(c, 'si control = 1: primero B, después A', l2x, l2y, { s: 24, w: 600, col: K.red });
+      return { cap: phaseCap(g.t, [[0, 'El sistema recorre las dos ramas a la vez: A y luego B (azul), B y luego A (rojo).'], [0.5, 'A la salida no hay un orden definido: hay superposición de «A antes de B» y «B antes de A».']]) };
+    } }] });
+})();
+
+// ============================================================================ Amigo de Wigner
+(() => {
+  S2({ id: 'wigner', cat: 'Física', title: 'El amigo de Wigner: hechos que dejan de ser absolutos',
+    info: { muestra: 'Una fuente envía pares entrelazados a dos laboratorios cerrados. Dentro, una amiga (C) y un amigo (D) miden. Afuera, Alice y Bob eligen: o preguntan el resultado, o revierten la medición del amigo y miden otra cosa.',
+      lectura: 'Tres supuestos juntos («Local Friendliness»: no hay superdeterminismo, hay localidad, los hechos observados son absolutos) implican desigualdades que la mecánica cuántica predice violar; un experimento de principio lo confirmó (Bong et al., 2020). Soporte para el psicoanálisis: el teorema tiene la forma de lo real como imposible. Crítica: los físicos dejan abierto qué es un «observador».',
+      libro: 'Cap. 24 (§ 1.5 y Figura 24.5).', estatuto: 'Teorema de imposibilidad y experimento de principio.' },
+    views: [{ id: 'escenario', name: 'El escenario', dur: 16, draw(g) {
+      const c = g.c, { W, H, land } = g, t = g.t, cyc = (g.T % 8) / 8;
+      const sx = W / 2, sy = land ? H * 0.16 : H * 0.12, lab = (i) => land ? [i ? W * 0.74 : W * 0.06, H * 0.3, W * 0.2, H * 0.3] : [i ? W * 0.53 : W * 0.04, H * 0.27, W * 0.43, H * 0.22];
+      dot(c, sx, sy, 22, K.vio, { halo: 3.5 }); tx(c, 'fuente de pares entrelazados', sx, sy - 44, { s: 22, col: K.vio });
+      const p1 = easeSeg(cyc, 0.02, 0.25), meas = cyc > 0.25 && cyc < 0.4, choice = cyc > 0.45;
+      [0, 1].forEach(i => { const [x, y, w, h] = lab(i); box(c, x, y, w, h, { title: i ? 'laboratorio de D' : 'laboratorio de C', fill: meas ? 'rgba(124,240,154,.16)' : 'rgba(14,16,40,.75)', stroke: meas ? K.grn : 'rgba(255,255,255,.25)', sw: 3, glow: meas ? 20 : 0 });
+        dot(c, x + w / 2, y + h * 0.58, 20, K.grn, { halo: 2 }); tx(c, i ? 'amigo D mide' : 'amiga C mide', x + w / 2, y + h * 0.82, { s: 20, col: K.grn });
+        const tx0 = sx, ty0 = sy, tx1 = x + w / 2, ty1 = y; if (p1 < 1) dot(c, lerp(tx0, tx1, p1), lerp(ty0, ty1, p1), 10, '#e8d8ff', { halo: 4 });
+        ln(c, [[tx0, ty0], [tx1, ty1]], 'rgba(180,140,255,.3)', 2, { dash: [8, 8] });
+        const ox = x + w / 2, oy = land ? H * 0.8 : H * 0.6 + (h * 0.3), who = i ? 'Bob' : 'Alice', ask = ((Math.floor(g.T / 8) + i) % 2) === 0;
+        dot(c, ox, oy, 22, K.cyan, { halo: 2.5 }); tx(c, who, ox, oy + 40, { s: 24, w: 700, col: K.cyan });
+        if (choice) { const q = easeSeg(cyc, 0.45, 0.7); tx(c, ask ? 'pregunta el resultado' : 'revierte y mide otra cosa', ox, oy + 74, { s: 20, w: 600, col: ask ? K.yel : K.orange, al: q });
+          if (ask) arr(c, ox, y + h + 6, ox, lerp(y + h + 6, oy - 30, q), K.yel, 4); else { c.strokeStyle = K.orange; c.lineWidth = 4; c.globalAlpha = q; c.beginPath(); c.arc(ox, (y + h + oy) / 2, 30, -PI * 0.9, PI * 0.6); c.stroke(); c.globalAlpha = 1; } } });
+      const [bx, by, bw, bh] = land ? [W * 0.31, H * 0.34, W * 0.38, H * 0.3] : [W * 0.06, H * 0.75, W * 0.88, H * 0.2];
+      box(c, bx, by, bw, bh, { stroke: K.red, sw: 3, fill: 'rgba(60,10,20,.5)' });
+      tx(c, 'Local Friendliness', bx + bw / 2, by + bh * 0.2, { s: 26, w: 800, col: K.red }); tx(c, 'no superdeterminismo + localidad', bx + bw / 2, by + bh * 0.42, { s: 21, col: K.txt }); tx(c, '+ hechos observados absolutos ⇒ desigualdades', bx + bw / 2, by + bh * 0.6, { s: 21, col: K.txt });
+      tx(c, 'la mecánica cuántica predice violarlas', bx + bw / 2, by + bh * 0.82, { s: 21, w: 700, col: K.yel, al: easeSeg(t, 0.5, 0.6) });
+      return { cap: phaseCap(t, [[0, 'Pares entrelazados llegan a dos laboratorios cerrados; dentro, cada amigo mide.'], [0.3, 'Afuera, Alice y Bob eligen: preguntar el resultado o revertir la medición y medir otra cosa.'], [0.6, 'Si los hechos observados fueran absolutos, valdrían ciertas desigualdades. La cuántica las viola.']]) };
+    } }] });
+})();
+
+// ============================================================================ La red 1-3 (de Bruijn)
+(() => {
+  const R = rng(5), seq = []; for (let i = 0; i < 80; i++) seq.push(R() < 0.5 ? '+' : '−');
+  const cls = i => { const d1 = seq[i] === seq[i + 1] ? 0 : 1, d2 = seq[i + 1] === seq[i + 2] ? 0 : 1; return d1 * 2 + d2; }; // 0:(0,0)=1 1:(0,1)=2a 2:(1,0)=2c 3:(1,1)=3
+  const NAME = ['1', '2', '2', '3'], SUB = ['constancia (0,0)', 'apertura (0,1)', 'cierre (1,0)', 'alternancia (1,1)'], COLS = [K.cyan, K.yel, K.orange, K.pink];
+  const EDGES = [[0, 0], [0, 1], [1, 3], [1, 2], [3, 3], [3, 2], [2, 0], [2, 1]];
+  function graph(c, g, cx, cy, sc, cur, prev) {
+    const V = [[cx - sc, cy], [cx, cy - sc * 0.72], [cx, cy + sc * 0.72], [cx + sc, cy]];
+    for (const [a, b] of EDGES) { const on = prev === a && cur === b, col = on ? K.white : 'rgba(255,255,255,.35)', w = on ? 6 : 3;
+      if (a === b) { const [x, y] = V[a], dx = a === 0 ? -1 : 1; c.strokeStyle = col; c.lineWidth = w; c.beginPath(); c.arc(x + dx * 70, y, 34, 0, TAU); c.stroke(); continue; }
+      const [x1, y1] = V[a], [x2, y2] = V[b], mx = (x1 + x2) / 2, my = (y1 + y2) / 2, nx = -(y2 - y1), ny = x2 - x1, L = Math.hypot(nx, ny), bend = (a === 1 && b === 2) || (a === 2 && b === 1) ? 0.25 : 0.12;
+      const qx = mx + nx / L * L * bend, qy = my + ny / L * L * bend; const pts = []; for (let i = 0; i <= 30; i++) { const s = i / 30; pts.push([(1 - s) ** 2 * x1 + 2 * s * (1 - s) * qx + s * s * x2, (1 - s) ** 2 * y1 + 2 * s * (1 - s) * qy + s * s * y2]); }
+      const cut = pts.filter(p => Math.hypot(p[0] - x2, p[1] - y2) > 52 && Math.hypot(p[0] - x1, p[1] - y1) > 52); ln(c, cut, col, w, { glow: on ? 12 : 0 }); const e = cut[cut.length - 1], e0 = cut[cut.length - 3]; arr(c, e0[0], e0[1], e[0], e[1], col, w); }
+    V.forEach(([x, y], i) => { dot(c, x, y, 46, i === cur ? COLS[i] : 'rgba(14,16,40,.95)', { stroke: COLS[i], sw: 4, halo: i === cur ? 2.2 : 0 }); tx(c, NAME[i], x, y + 2, { s: 40, w: 800, col: i === cur ? '#0b0d1f' : COLS[i] }); tx(c, SUB[i], x, y + (i === 1 ? -78 : 78), { s: 19, col: K.dim }); });
+    const [a, b] = [V[0], V[3]]; ln(c, [[a[0] + 56, a[1]], [b[0] - 56, b[1]]], 'rgba(255,90,106,.55)', 3, { dash: [10, 10] }); tx(c, '✗ 1 → 3', cx, cy - 22, { s: 22, w: 700, col: K.red });
+  }
+  S2({ id: 'red-13', cat: 'Lógica y matemática', title: 'La red 1-3: la sintaxis de «La carta robada»',
+    info: { muestra: 'Una serie de tiradas + y −. Cada tríada consecutiva se clasifica, como hace Lacan, en (1) constancia, (2) disimetría, (3) alternancia. Escritas con el bit de diferencia, las tríadas son los vértices de un grafo de de Bruijn.',
+      lectura: 'Dos tríadas consecutivas comparten una diferencia: por eso el estado (d, d′) solo puede pasar a (d′, x). Resultan leyes sin excepción: desde 1 solo se va a 1 o al 2 de apertura; desde 3, solo a 3 o al 2 de cierre; nunca de 1 a 3 directamente. El azar de las tiradas produce una sintaxis.',
+      libro: 'Cap. 6 (§ 6.3.2 y Figura 6.5: la red 1-3 como grafo de de Bruijn B(2, 2)). Lacan, «El seminario sobre “La carta robada”» (1956/2009, pp. 56-57).', estatuto: 'Modelo matemático en sentido estricto; la identificación con el grafo de de Bruijn es del tratado.' },
+    views: [{ id: 'tiradas', name: 'Tiradas y grafo', dur: 20, draw(g) {
+      const c = g.c, { W, H, land } = g, step = Math.min(60, Math.floor(g.T / 0.55)), i = step, cur = cls(i), prev = i > 0 ? cls(i - 1) : -1;
+      const [sx, sy, sw] = land ? [40, 60, W - 80] : [24, 50, W - 48]; box(c, sx, sy, sw, 110, { r: 14 });
+      const n = land ? 22 : 12, cw = (sw - 40) / n, first = Math.max(0, i - (n - 4));
+      for (let k = 0; k < n; k++) { const j = first + k; if (j > i + 2) break; const x = sx + 20 + cw * (k + 0.5), inT = j >= i && j <= i + 2;
+        if (inT) { c.fillStyle = 'rgba(255,255,255,.12)'; c.fillRect(x - cw / 2 + 2, sy + 12, cw - 4, 86); }
+        tx(c, seq[j], x, sy + 55, { s: 46, w: 800, col: seq[j] === '+' ? K.cyan : K.pink, al: inT ? 1 : 0.55 }); }
+      const [gx, gy, sc] = land ? [W * 0.42, H * 0.6, H * 0.36] : [W / 2, H * 0.52, W * 0.32];
+      graph(c, g, gx, gy, sc, cur, prev);
+      const [kx, ky, kw, kh] = land ? [W * 0.74, H * 0.28, W * 0.24, H * 0.62] : [24, H * 0.78, W - 48, H * 0.2];
+      box(c, kx, ky, kw, kh, { title: 'Tríada actual' }); tx(c, seq.slice(i, i + 3).join(' '), kx + kw / 2, ky + kh * (land ? 0.32 : 0.45), { s: 50, w: 800 });
+      tx(c, `clase ${NAME[cur]}: ${SUB[cur]}`, kx + kw / 2, ky + kh * (land ? 0.5 : 0.75), { s: 22, w: 700, col: COLS[cur] });
+      if (land) tx(c, 'bits de diferencia', kx + kw / 2, ky + kh * 0.7, { s: 19, col: K.dim }), tx(c, `(${(cur >> 1)}, ${cur & 1})`, kx + kw / 2, ky + kh * 0.82, { s: 34, w: 700, col: COLS[cur] });
+      return { hud: [{ t: `Tirada ${i + 3}`, c: '#d6dcff' }], cap: phaseCap(g.t, [[0, 'Cada tríada de tiradas consecutivas cae en una clase: 1, 2 o 3.'], [0.3, 'La ficha avanza por el grafo: dos tríadas seguidas comparten dos tiradas.'], [0.6, 'Ley sin excepción: de 1 nunca se pasa directamente a 3, ni de 3 a 1. El azar produce una sintaxis.']]) };
+    } }] });
+})();
+
+// ============================================================================ Diagonal de Cantor
+(() => {
+  const R = rng(19), n = 9, m = 13, rows = []; for (let i = 0; i < n; i++) { const r = []; for (let j = 0; j < m; j++) r.push(R() < 0.5 ? 0 : 1); rows.push(r); }
+  S2({ id: 'cantor', cat: 'Lógica y matemática', title: 'La diagonal de Cantor',
+    info: { muestra: 'Una lista de sucesiones infinitas de 0 y 1. Se construye una sucesión nueva cambiando el dígito de la diagonal: difiere de la primera en el primer lugar, de la segunda en el segundo, y así. No está en la lista.',
+      lectura: 'Sea cual fuere la manera de enumerar, hay otra que la lista no contiene. Lacan: «en esto consiste lo real que se vincula al Uno». El libro lo acepta si se lee como el teorema de Cantor: ninguna lista numerable agota los subconjuntos de ℕ.',
+      libro: 'Cap. 5 (la diagonal; taller «La diagonal de Cantor»). Lacan, Seminario 19, clase del 19-4-72, p. 71.', estatuto: 'Teorema (Cantor, 1891).' },
+    views: [{ id: 'diagonal', name: 'La construcción', dur: 16, draw(g) {
+      const c = g.c, { W, H, land } = g, k = n * easeSeg(g.t, 0.08, 0.6), chk = easeSeg(g.t, 0.66, 0.95) * n;
+      const cs = land ? Math.min((W * 0.7) / (m + 3), (H * 0.72) / (n + 3)) : (W - 80) / (m + 2), x0 = land ? W * 0.1 : 40, y0 = land ? H * 0.1 : H * 0.12;
+      for (let i = 0; i < n; i++) { tx(c, `s${'₁₂₃₄₅₆₇₈₉'[i]}`, x0 + cs * 0.4, y0 + cs * (i + 0.5), { s: cs * 0.42, w: 700, col: K.dim, serif: true, it: true });
+        const hit = chk > i && chk < i + 1.2;
+        for (let j = 0; j < m; j++) { const x = x0 + cs * (j + 1.5), y = y0 + cs * (i + 0.5), dg = i === j;
+          if (dg && k > i) { c.fillStyle = 'rgba(255,216,74,.22)'; c.fillRect(x - cs / 2 + 2, y - cs / 2 + 2, cs - 4, cs - 4); }
+          if (dg && hit) { c.strokeStyle = K.red; c.lineWidth = 4; c.strokeRect(x - cs / 2 + 3, y - cs / 2 + 3, cs - 6, cs - 6); }
+          tx(c, String(rows[i][j]), x, y, { s: cs * 0.5, w: dg ? 800 : 500, col: dg && k > i ? K.yel : K.txt, al: dg ? 1 : 0.8 }); }
+        tx(c, '…', x0 + cs * (m + 1.6), y0 + cs * (i + 0.5), { s: cs * 0.5, col: K.dim }); }
+      tx(c, '⋮', x0 + cs * 0.4, y0 + cs * (n + 0.4), { s: cs * 0.5, col: K.dim });
+      const yd = y0 + cs * (n + 1.4); tx(c, 'd', x0 + cs * 0.4, yd, { s: cs * 0.5, w: 800, col: K.grn, serif: true, it: true });
+      for (let j = 0; j < n; j++) if (k > j + 0.5) { const x = x0 + cs * (j + 1.5); tx(c, String(1 - rows[j][j]), x, yd, { s: cs * 0.55, w: 800, col: K.grn, glow: 10 });
+        if (k < j + 1.4) arr(c, x, y0 + cs * (j + 0.9), x, yd - cs * 0.45, K.grn, 3); }
+      if (chk > 0) { const r = Math.min(n - 1, Math.floor(chk)); tx(c, `d ≠ s${'₁₂₃₄₅₆₇₈₉'[r]}: difieren en el lugar ${r + 1}`, land ? W * 0.86 : W / 2, land ? H * 0.5 : yd + cs * 1.4, { s: land ? 26 : 30, w: 700, col: K.red }); }
+      return { cap: phaseCap(g.t, [[0, 'Una lista cualquiera de sucesiones de 0 y 1.'], [0.1, 'Recorremos la diagonal y cambiamos cada dígito: 0 por 1, 1 por 0.'], [0.62, 'La sucesión d difiere de cada fila en un lugar: no está en la lista.'], [0.95, 'Ninguna lista numerable agota las sucesiones: siempre hay «otra manera más».']]) };
+    } }] });
+})();
+
+// ============================================================================ Número de oro
+(() => {
+  const PHI = (Math.sqrt(5) - 1) / 2;
+  S2({ id: 'oro', cat: 'Lógica y matemática', title: 'El número de oro: el resto a',
+    info: { muestra: 'La sección áurea: dividir un segmento de modo que el todo sea a la parte mayor como la mayor a la menor. De a² = 1 − a sale a = (√5 − 1)/2 ≈ 0,618. Las razones de Fibonacci se acercan a ese número alternando por arriba y por abajo, y el rectángulo áureo se deja quitar cuadrados sin terminar nunca.',
+      lectura: 'Lacan usa esta proporción en los Seminarios 14, 15 y 17 para escribir el resto a, el elemento irreductible de la operación del sujeto con el Otro. La parte mayor es la media proporcional entre el todo y la parte menor; el proceso de Euclides no termina: inconmensurabilidad.',
+      libro: 'Cap. 14 (§ 4: la matemática del número de oro, completa; § 4.8: lo que Lacan hace con ella). Lacan, Seminario 14, clase del 1-3-67; Seminario 17, clase del 20-5-70, p. 85.', estatuto: 'Matemática exacta; su uso para escribir el objeto es del texto de Lacan (balance en cap. 14, § 4.9).' },
+    views: [
+      { id: 'seccion', name: 'Media y extrema razón', dur: 12, draw(g) {
+        const c = g.c, { W, H, land } = g, x0 = W * 0.1, x1 = W * 0.9, y = land ? H * 0.36 : H * 0.3, s = g.t < 0.6 ? 0.85 - (0.85 - PHI) * ease(g.t / 0.6) + 0.05 * Math.sin(g.T * 2) * (1 - easeSeg(g.t, 0.4, 0.6)) : PHI;
+        const xm = lerp(x0, x1, s); ln(c, [[x0, y], [xm, y]], K.yel, 12, { glow: 14 }); ln(c, [[xm, y], [x1, y]], K.cyan, 12, { glow: 14 }); dot(c, xm, y, 14, K.white, { halo: 3 });
+        tx(c, 'a', (x0 + xm) / 2, y - 46, { s: 46, it: true, serif: true, col: K.yel }); tx(c, '1 − a', (xm + x1) / 2, y - 46, { s: 40, it: true, serif: true, col: K.cyan });
+        ln(c, [[x0, y + 50], [x1, y + 50]], K.faint, 2); tx(c, '1', (x0 + x1) / 2, y + 80, { s: 36, it: true, serif: true, col: K.dim });
+        const r1 = 1 / s, r2 = s / (1 - s), ok = Math.abs(r1 - r2) < 0.01;
+        const [bx, by, bw, bh] = land ? [W * 0.18, H * 0.56, W * 0.64, H * 0.36] : [40, H * 0.47, W - 80, H * 0.46]; box(c, bx, by, bw, bh, { stroke: ok ? K.yel : 'rgba(255,255,255,.15)', glow: ok ? 18 : 0 });
+        tx(c, `1 / a = ${r1.toFixed(3).replace('.', ',')}`, bx + bw * (land ? 0.27 : 0.5), by + bh * (land ? 0.3 : 0.18), { s: 34, w: 700 }); tx(c, `a / (1 − a) = ${r2.toFixed(3).replace('.', ',')}`, bx + bw * (land ? 0.73 : 0.5), by + bh * (land ? 0.3 : 0.36), { s: 34, w: 700 });
+        const fa = easeSeg(g.t, 0.6, 0.72); tx(c, 'a² = 1 − a   ⇒   a = (√5 − 1) / 2 ≈ 0,618…', bx + bw / 2, by + bh * (land ? 0.62 : 0.62), { s: land ? 38 : 30, serif: true, it: true, col: K.yel, al: fa });
+        tx(c, 'la parte mayor es media proporcional entre el todo y la menor', bx + bw / 2, by + bh * (land ? 0.84 : 0.84), { s: 22, col: K.dim, al: fa });
+        return { cap: phaseCap(g.t, [[0, 'Buscamos el punto que divide al segmento en media y extrema razón.'], [0.6, 'Allí las dos razones coinciden: a² = 1 − a. Lacan escribe con este número el resto a.']]) };
+      } },
+      { id: 'fibonacci', name: 'Fibonacci', dur: 14, draw(g) {
+        const c = g.c, { W, H, land } = g, F = [1, 1]; for (let i = 0; i < 14; i++) F.push(F[F.length - 1] + F[F.length - 2]); const k = 1 + Math.floor(12 * easeSeg(g.t, 0.05, 0.85));
+        const [gx, gy, gw, gh] = land ? [W * 0.08, H * 0.12, W * 0.52, H * 0.7] : [60, H * 0.1, W - 100, H * 0.42];
+        ln(c, [[gx, gy], [gx, gy + gh], [gx + gw, gy + gh]], K.faint, 2); const Y = v => gy + gh - (v - 0.45) / 0.6 * gh; ln(c, [[gx, Y(PHI)], [gx + gw, Y(PHI)]], K.yel, 2, { dash: [10, 8] }); tx(c, '0,618…', gx + gw + 10, Y(PHI), { a: 'left', s: 22, col: K.yel });
+        const pts = []; for (let i = 0; i < k; i++) pts.push([gx + gw * (i + 0.5) / 13, Y(F[i] / F[i + 1])]); ln(c, pts, K.cyan, 3); pts.forEach((p, i) => dot(c, p[0], p[1], 8, i % 2 ? K.pink : K.cyan, { halo: 2.5 }));
+        const [tx0, ty0, tw, th] = land ? [W * 0.66, H * 0.08, W * 0.31, H * 0.84] : [24, H * 0.58, W - 48, H * 0.4]; box(c, tx0, ty0, tw, th, { title: 'Fₙ / Fₙ₊₁' });
+        const rowsN = land ? 12 : 7, st = Math.max(0, k - rowsN); for (let i = st; i < k; i++) { const y = ty0 + 70 + (i - st) * (th - 90) / rowsN; tx(c, `${F[i]} / ${F[i + 1]}`, tx0 + tw * 0.38, y, { s: 24, a: 'right', col: K.dim }); tx(c, `= ${(F[i] / F[i + 1]).toFixed(6).replace('.', ',')}`, tx0 + tw * 0.42, y, { s: 24, a: 'left', w: 700, col: i % 2 ? K.pink : K.cyan }); }
+        return { cap: phaseCap(g.t, [[0, 'Cada número de Fibonacci es la suma de los dos anteriores.'], [0.35, 'El cociente de dos consecutivos se acerca a 0,618…, alternando por arriba y por abajo.'], [0.85, 'Es la fracción continua 1/(1 + 1/(1 + 1/(1 + …))): la que converge más lentamente.']]) };
+      } },
+      { id: 'rectangulo', name: 'Rectángulo áureo', dur: 14, draw(g) {
+        const c = g.c, { W, H, land } = g, n = 1 + Math.floor(9 * easeSeg(g.t, 0.05, 0.85)), sz = land ? H * 0.7 : W * 0.86 * PHI;
+        let x = land ? (W - sz / PHI) / 2 : (W - sz / PHI) / 2, y = land ? H * 0.12 : H * 0.2, w = sz / PHI, h = sz; if (!land) { w = W * 0.86; h = w * PHI; x = W * 0.07; }
+        ln(c, [[x, y], [x + w, y], [x + w, y + h], [x, y + h]], K.dim, 3, { close: true }); const cols = [K.cyan, K.yel, K.pink, K.grn, K.orange, K.vio];
+        let rx = x, ry = y, rw = w, rh = h; const arcs = [];
+        for (let i = 0; i < n; i++) { const s = Math.min(rw, rh), d = i % 4; let sx, sy;
+          if (d === 0) { sx = rx; sy = ry; rx += s; rw -= s; arcs.push([sx + s, sy + s, s, PI, 1.5 * PI]); } else if (d === 1) { sx = rx; sy = ry; ry += s; rh -= s; arcs.push([sx, sy + s, s, 1.5 * PI, 2 * PI]); }
+          else if (d === 2) { sx = rx + rw - s; sy = ry; rw -= s; arcs.push([sx, sy, s, 0, 0.5 * PI]); } else { sx = rx; sy = ry + rh - s; rh -= s; arcs.push([sx + s, sy, s, 0.5 * PI, PI]); }
+          c.fillStyle = cols[i % 6]; c.globalAlpha = 0.16; c.fillRect(sx, sy, s, s); c.globalAlpha = 1; ln(c, [[sx, sy], [sx + s, sy], [sx + s, sy + s], [sx, sy + s]], cols[i % 6], 2.5, { close: true }); }
+        arcs.forEach(([ax, ay, r, a0, a1]) => { c.strokeStyle = K.white; c.lineWidth = 4; c.shadowColor = K.white; c.shadowBlur = 10; c.beginPath(); c.arc(ax, ay, r, a0, a1); c.stroke(); c.shadowBlur = 0; });
+        return { hud: [{ t: `Cuadrados quitados: ${n}; el resto sigue siendo áureo`, c: '#ffe066' }], cap: phaseCap(g.t, [[0, 'Quitamos al rectángulo áureo el mayor cuadrado posible.'], [0.3, 'Lo que resta es otra vez un rectángulo áureo, más chico. Y así sin fin.'], [0.85, 'El algoritmo de Euclides no termina: los lados son inconmensurables.']]) };
+      } }
+    ] });
+})();
+
+// ============================================================================ Cuartos de vuelta: los cuatro discursos
+(() => {
+  const D = [['discurso del amo', ['S₁', 'S₂', '$', 'a']], ['discurso de la histérica', ['$', 'S₁', 'a', 'S₂']], ['discurso del analista', ['a', '$', 'S₂', 'S₁']], ['discurso universitario', ['S₂', 'a', 'S₁', '$']]];
+  const TERMS = ['S₁', 'S₂', '$', 'a'], TC = { 'S₁': K.yel, 'S₂': K.cyan, '$': K.pink, 'a': K.grn }, PL = ['agente', 'otro', 'verdad', 'producción'];
+  S2({ id: 'discursos', cat: 'Lógica y matemática', title: 'Cuartos de vuelta: los cuatro discursos',
+    info: { muestra: 'Cuatro lugares fijos (agente, otro, verdad, producción) y cuatro términos (S₁, S₂, $, a) que mantienen su orden cíclico y solo se desplazan. Cada discurso sale del anterior por un cuarto de vuelta.',
+      lectura: 'El término en el lugar de la verdad pasa al de agente, el agente al otro, el otro a la producción y la producción a la verdad: amo, histérica, analista, universitario. Lacan lo llama una «revolución no permutativa»: no se permutan los términos, gira el conjunto.',
+      libro: 'Cap. 26 (los discursos como permutaciones por cuartos de vuelta; Figura 26.4; taller «Cuartos de vuelta»); cap. 29 (los cuatro discursos como órbita del grupo cíclico Z₄). Lacan, «Radiofonía» y «El atolondradicho», en Otros escritos.', estatuto: 'Estructura algebraica exacta (Z₄); su lectura clínica es del texto.' },
+    views: [{ id: 'giro', name: 'El giro', dur: 16, draw(g) {
+      const c = g.c, { W, H, land } = g, per = 4, T = g.T, k = Math.floor(T / per) % 4, f = easeSeg((T % per) / per, 0.55, 0.9);
+      const cx = W / 2, cy = land ? H * 0.5 : H * 0.42, dx = land ? 240 : W * 0.26, dy = land ? 170 : 190;
+      const PP = [[cx - dx, cy - dy], [cx + dx, cy - dy], [cx - dx, cy + dy], [cx + dx, cy + dy]];
+      PP.forEach(([x, y], i) => { box(c, x - 120, y - 82, 240, 164, { r: 22, fill: 'rgba(14,16,40,.7)' }); tx(c, PL[i], x, y + (i < 2 ? -112 : 112), { s: 22, col: K.dim }); });
+      arr(c, cx - dx + 130, cy - dy, cx + dx - 130, cy - dy, K.txt, 4); ln(c, [[cx - dx - 150, cy], [cx + dx + 150, cy]], 'rgba(255,255,255,.4)', 2);
+      tx(c, '//', cx, cy + dy, { s: 44, w: 800, col: K.red }); tx(c, 'barrera entre verdad y producción', cx, cy + dy + 150, { s: 19, col: 'rgba(255,90,106,.85)' });
+      const cur0 = f < 0.5 ? k : (k + 1) % 4; D.forEach(([nm], i) => { const [lx, ly] = land ? [W * 0.86, cy - 120 + i * 80] : [W / 2, H * 0.78 + i * 0 ]; if (!land) return; tx(c, nm, lx, ly, { s: 22, w: i === cur0 ? 800 : 500, col: i === cur0 ? K.yel : K.dim }); if (i < 3) tx(c, '↓ ¼', lx, ly + 40, { s: 18, col: K.faint }); });
+      const cur = D[k][1], nxt = D[(k + 1) % 4][1], route = { 2: 0, 0: 1, 1: 3, 3: 2 }; // verdad→agente→otro→producción→verdad
+      cur.forEach((term, i) => { const j = route[i], a = PP[i], b = PP[j]; const mx = (a[0] + b[0]) / 2 + (cx - (a[0] + b[0]) / 2) * -0.25, my = (a[1] + b[1]) / 2 + (cy - (a[1] + b[1]) / 2) * -0.25;
+        const s = f, x = (1 - s) ** 2 * a[0] + 2 * s * (1 - s) * mx + s * s * b[0], y = (1 - s) ** 2 * a[1] + 2 * s * (1 - s) * my + s * s * b[1];
+        tx(c, term, x, y, { s: 76, w: 700, serif: true, it: term === 'a', col: TC[term], glow: 18 }); });
+      const name = f < 0.5 ? D[k][0] : D[(k + 1) % 4][0]; tx(c, name, cx, land ? H * 0.08 : H * 0.1, { s: 38, w: 800, col: K.txt });
+      if (f > 0 && f < 1) { c.strokeStyle = 'rgba(255,255,255,.3)'; c.lineWidth = 3; c.beginPath(); c.arc(cx, cy, Math.min(dx, dy) * 0.6, -PI / 2, -PI / 2 + PI / 2 * f); c.stroke(); }
+      return { hud: [{ t: 'verdad → agente → otro → producción → verdad', c: '#d6dcff' }], cap: phaseCap(g.t, [[0, 'Los lugares quedan fijos. Los términos giran un cuarto de vuelta, sin cambiar su orden.'], [0.25, 'Amo → histérica → analista → universitario: cuatro discursos, un mismo giro.'], [0.75, 'Una «revolución no permutativa»: la órbita del grupo cíclico de orden cuatro.']]) };
+    } }] });
+})();
+
+// ============================================================================
+// Aplicación: navegación, cámara, gestos, rótulos, exportación 4K
+// ============================================================================
+'use strict';
+const $ = id => document.getElementById(id);
+const Q = new URLSearchParams(location.search), EXPORT = Q.get('export');
+const OLD = { 'moebius': 'moebius', 'two-tori': 'toro--enlazados', 'klein': 'klein', 'crosscap': 'crosscap', 'borromean': 'borromeo', 'olympic': 'olimpica', 'knots': 'nudos',
+  'moebius-cut': 'moebius--corte-mitad', 'trefoil-torus': 'nudos--trebol', 'torus-cycles': 'toro--ciclos', 'torus-demand': 'toro--demanda', 'square-torus': 'toro--pegado',
+  'sphere-torus': 'esfera-toro', 'moebius-in-torus': 'moebius--en-el-toro', 'extraction': 'crosscap--extraccion', 'boy': 'boy' };
+const CATS = ['Superficies', 'Cortes', 'Nudos', 'Física', 'Lógica y matemática'];
+const st = { si: 0, vi: 0, T: 0, playing: true, hold: 0, dAz: 0, dEl: 0, zoom: 1, last: performance.now(), dirty: true, big: null };
+const cvGL = $('gl'), cvOV = $('ov'), ctx = cvOV.getContext('2d');
+let glr, frameObjs = null, frameKey = '', frameOut = {}; const camCache = {};
+const scene = () => SC[st.si], view = () => SC[st.si].views[st.vi];
+
+try { glr = new GLR(cvGL); } catch (e) { $('err').style.display = 'grid'; throw e; }
+
+// ---------------------------------------------------------------- tamaño y márgenes seguros
+function dprNow() { return EXPORT || st.big ? 1 : Math.min(window.devicePixelRatio || 1, 2.5); }
+function resize() {
+  if (EXPORT || st.big) return; const d = dprNow(), w = Math.round(innerWidth * d), h = Math.round(innerHeight * d);
+  for (const c of [cvGL, cvOV]) if (c.width !== w || c.height !== h) { c.width = w; c.height = h; } st.dirty = true;
+}
+function unit() { const W = cvGL.width, H = cvGL.height; if (EXPORT || st.big) return H / 1080; const d = dprNow(); return d * clamp(Math.min(innerWidth, innerHeight) / 700, 0.82, 1.25); }
+function safe() {
+  const W = cvGL.width, H = cvGL.height, u = unit();
+  if (EXPORT || st.big) return { top: 178 * u, bottom: 128 * u, left: 60 * u, right: 60 * u, narrow: false };
+  const d = dprNow(), hb = $('head').getBoundingClientRect(), db = $('dock').getBoundingClientRect(), narrow = innerWidth < 720;
+  return { top: (hb.bottom + 10) * d, bottom: (innerHeight - db.top + 12) * d + 64 * u, left: 16 * d, right: 16 * d, narrow, dockTop: db.top * d };
+}
+
+// ---------------------------------------------------------------- cámara
+function boundObjs(objsList) {
+  let mn = [1e9, 1e9, 1e9], mx = [-1e9, -1e9, -1e9];
+  for (const objs of objsList) for (const ob of objs) { const d = ob.off || [0, 0, 0]; for (let i = 0; i < ob.P.length; i += 3) for (let k = 0; k < 3; k++) { mn[k] = Math.min(mn[k], ob.P[i + k] + d[k]); mx[k] = Math.max(mx[k], ob.P[i + k] + d[k]); } }
+  const c = V.mul(V.add(mn, mx), 0.5); let rh = 0;
+  for (const objs of objsList) for (const ob of objs) { const d = ob.off || [0, 0, 0]; for (let i = 0; i < ob.P.length; i += 6) rh = Math.max(rh, Math.hypot(ob.P[i] + d[0] - c[0], ob.P[i + 1] + d[1] - c[1])); }
+  return { c, rh, zl: (mx[2] - mn[2]) / 2 };
+}
+function bound(v) { const ts = v.dur > 0 ? [0, 0.2, 0.4, 0.6, 0.8, 1] : [0]; return boundObjs(ts.map(t => v.frame(t).objs)); }
+function camera(sc, v, out, W, H, sf) {
+  const ck = st.si + ':' + st.vi; let B;
+  if (v.fit === 'frame') { const b = boundObjs([out.objs]), p = camCache[ck]; B = p ? { c: V.lerp(p.c, b.c, 0.5), rh: lerp(p.rh, b.rh, 0.5), zl: lerp(p.zl, b.zl, 0.5) } : b; camCache[ck] = B; }
+  else { if (!camCache[ck]) camCache[ck] = bound(v); B = camCache[ck]; }
+  const auto = v.dur === 0 && v.spin !== false && (st.playing || EXPORT) ? st.T * 0.16 : 0;
+  const az = (out.cam && out.cam.az != null ? out.cam.az : sc.az) + st.dAz + auto, el = clamp((out.cam && out.cam.el != null ? out.cam.el : sc.el) + st.dEl, -1.45, 1.45);
+  const fov = 0.6, aH = Math.max(80, H - sf.top - sf.bottom), aW = Math.max(80, W - sf.left - sf.right);
+  const tV = Math.tan(fov / 2) * aH / H, tH = Math.tan(fov / 2) * W / H * aW / W;
+  const hw = B.rh, hh = B.zl * Math.cos(el) + B.rh * Math.abs(Math.sin(el));
+  const dist = (Math.max(hw / tH, hh / tV) + B.rh * 0.32) / st.zoom, dir = [Math.cos(el) * Math.cos(az), Math.cos(el) * Math.sin(az), Math.sin(el)];
+  let target = B.c, eye = V.add(target, V.mul(dir, dist));
+  const f = V.norm(V.sub(target, eye)), right = V.norm(V.cross(f, [0, 0, 1])), up = V.cross(right, f);
+  const dy = (sf.top - sf.bottom) / 2, shift = dy / H * 2 * dist * Math.tan(fov / 2);
+  target = V.add(target, V.mul(up, shift)); eye = V.add(eye, V.mul(up, shift));
+  return { eye, target, fov, dist };
+}
+
+// ---------------------------------------------------------------- textos sobre el lienzo
+function wrap(c, s, maxW) { const words = s.split(' '), lines = []; let cur = ''; for (const w of words) { const tt = cur ? cur + ' ' + w : w; if (c.measureText(tt).width > maxW && cur) { lines.push(cur); cur = w; } else cur = tt; } if (cur) lines.push(cur); return lines; }
+function drawCaption(cap, W, H, sf, u) {
+  if (!cap) return 0; const fs = (EXPORT ? 23 : sf.narrow ? 16 : 19) * u; ctx.font = `500 ${fs}px Inter, "Helvetica Neue", Arial, sans-serif`;
+  const maxW = Math.min(W * 0.9, 1180 * u), lines = wrap(ctx, cap, maxW - 40 * u), lh = fs * 1.38, bh = lines.length * lh + fs * 1.1;
+  const yb = EXPORT || st.big ? H - 46 * u : (sf.dockTop || H) - 12 * dprNow(), bw = Math.min(maxW, Math.max(...lines.map(l => ctx.measureText(l).width)) + 48 * u);
+  ctx.save(); ctx.fillStyle = 'rgba(8,9,24,.66)'; ctx.strokeStyle = 'rgba(255,255,255,.12)'; ctx.lineWidth = Math.max(1, u);
+  ctx.beginPath(); ctx.roundRect(W / 2 - bw / 2, yb - bh, bw, bh, 16 * u); ctx.fill(); ctx.stroke();
+  ctx.fillStyle = '#f1f3ff'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; lines.forEach((l, i) => ctx.fillText(l, W / 2, yb - bh + fs * 0.55 + lh * (i + 0.5)));
+  ctx.restore(); return bh;
+}
+function drawHud(hud, W, H, sf, u, capH) {
+  if (!hud || !hud.length) return; const fs = (EXPORT ? 18 : sf.narrow ? 13 : 15) * u;
+  if (sf.narrow) { let y = (sf.dockTop || H) - 12 * dprNow() - capH - 22 * u; for (let i = hud.length - 1; i >= 0; i--) { pill(ctx, hud[i].t, W / 2, y, { size: fs, color: hud[i].c }); y -= fs * 2.1; } return; }
+  let y = (EXPORT || st.big) ? 90 * u : sf.top - 10 * dprNow() + 10 * u; if (!(EXPORT || st.big)) y = Math.max(y, ($('tools').getBoundingClientRect().bottom + 22) * dprNow());
+  for (const h of hud) { ctx.save(); ctx.font = `600 ${fs}px Inter, Arial, sans-serif`; const w = ctx.measureText(h.t).width + fs * 1.3; ctx.restore(); pill(ctx, h.t, W - sf.right - 20 * u - w, y, { size: fs, color: h.c, align: 'left' }); y += fs * 2.1; }
+}
+function drawLabels(labels, M, W, H, u) {
+  if (!labels || !M) return;
+  for (const l of labels) { const p = xf(M, l.p); if (p[3] <= 0 || Math.abs(p[0]) > 1.2 || Math.abs(p[1]) > 1.2) continue; const x = (p[0] * 0.5 + 0.5) * W, y = (0.5 - p[1] * 0.5) * H;
+    if (l.size && l.size >= 26) { txt(ctx, l.t, x, y, { size: l.size * u, color: l.c, weight: 800 }); continue; }
+    const fs = (EXPORT ? 18 : 15) * u; ctx.font = `600 ${fs}px Inter, Arial, sans-serif`; const w = ctx.measureText(l.t).width + fs * 1.3, m = 10 * u;
+    pill(ctx, l.t, clamp(x, w / 2 + m, W - w / 2 - m), y, { size: fs, color: l.c }); }
+}
+function drawTitles(W, H, u) {
+  const sc = scene(), v = view(); ctx.save(); ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
+  ctx.font = `600 ${15 * u}px Inter, Arial, sans-serif`; ctx.fillStyle = '#e8c46a'; ctx.letterSpacing = `${3 * u}px`; ctx.fillText('ATLAS · EL SUJETO DE LA CIENCIA', 64 * u, 74 * u); ctx.letterSpacing = '0px';
+  ctx.font = `500 ${46 * u}px "Iowan Old Style","Palatino Linotype",Palatino,Georgia,serif`; ctx.fillStyle = '#f2f3ff'; ctx.shadowColor = '#000'; ctx.shadowBlur = 20 * u; ctx.fillText(sc.title, 64 * u, 130 * u);
+  ctx.shadowBlur = 0; ctx.font = `500 ${19 * u}px Inter, Arial, sans-serif`; ctx.fillStyle = 'rgba(225,230,255,.7)'; ctx.fillText(`${sc.cat} · ${v.name}`, 64 * u, 166 * u);
+  ctx.textAlign = 'right'; ctx.font = `500 ${13 * u}px Inter, Arial, sans-serif`; ctx.fillStyle = 'rgba(225,230,255,.42)'; ctx.fillText('Lizandro R. López Colque · El sujeto de la ciencia', W - 64 * u, H - 22 * u);
+  ctx.restore();
+}
+
+// ---------------------------------------------------------------- dibujo
+function draw() {
+  const sc = scene(), v = view(), W = cvGL.width, H = cvGL.height, u = unit(), sf = safe(), t = v.dur > 0 ? clamp(st.T / v.dur) : 0;
+  ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.clearRect(0, 0, W, H); let out = {}, M = null;
+  if (sc.kind === '3d') {
+    const key = st.si + ':' + st.vi + ':' + (v.dur > 0 ? t.toFixed(5) : 's');
+    if (key !== frameKey) { if (frameObjs) frameObjs.forEach(o => { if (!o.keep && !o.base) glr.free(o); }); frameOut = v.frame(t); frameObjs = frameOut.objs; frameKey = key; }
+    out = frameOut; M = glr.render(frameObjs, camera(sc, v, out, W, H, sf), W, H); drawLabels(out.labels, M, W, H, u);
+  } else {
+    glr.render([], null, W, H);
+    const bx = sf.left, by = sf.top, bw = W - sf.left - sf.right, bh = H - sf.top - sf.bottom, land = bw / bh > 1.02, VW = land ? 1600 : 900, VH = land ? 900 : 1500;
+    const s = Math.min(bw / VW, bh / VH), ox = bx + (bw - VW * s) / 2, oy = by + (bh - VH * s) / 2;
+    ctx.save(); ctx.setTransform(s, 0, 0, s, ox, oy); out = v.draw({ c: ctx, W: VW, H: VH, land, t, T: v.dur > 0 ? Math.min(st.T, v.dur) : st.T, dur: v.dur }) || {}; ctx.restore();
+  }
+  const capH = drawCaption(out.cap, W, H, sf, u); drawHud(out.hud, W, H, sf, u, capH);
+  if (EXPORT || st.big) drawTitles(W, H, u);
+}
+
+// ---------------------------------------------------------------- interfaz
+function setPlayIcon() { $('play').innerHTML = st.playing ? '<svg viewBox="0 0 24 24"><rect x="6" y="5" width="4" height="14" rx="1"/><rect x="14" y="5" width="4" height="14" rx="1"/></svg>' : '<svg viewBox="0 0 24 24"><path d="M7 5l12 7-12 7z"/></svg>'; }
+function syncUI() {
+  const sc = scene(), v = view(); $('title').textContent = sc.title; $('sub').textContent = `${sc.cat} · ${sc.views.length} ${sc.views.length > 1 ? 'miradas' : 'mirada'}`;
+  $('views').innerHTML = ''; sc.views.forEach((w, i) => { const b = document.createElement('button'); b.className = 'chip' + (i === st.vi ? ' on' : ''); b.textContent = w.name; b.onclick = () => go(st.si, i); $('views').appendChild(b); if (i === st.vi) setTimeout(() => b.scrollIntoView({ inline: 'center', block: 'nearest', behavior: 'smooth' }), 30); });
+  $('tl').classList.toggle('static', v.dur === 0); $('iTitle').textContent = sc.title; $('iM').textContent = sc.info.muestra; $('iL').textContent = sc.info.lectura; $('iB').textContent = sc.info.libro; $('iE').textContent = sc.info.estatuto;
+  document.querySelectorAll('.it').forEach(e => e.classList.toggle('on', +e.dataset.i === st.si)); document.title = `${sc.title} · Atlas`; setPlayIcon(); syncTime();
+}
+function syncTime() { const v = view(), p = v.dur > 0 ? clamp(st.T / v.dur) : 0; $('scrub').value = Math.round(p * 1000); $('scrub').style.setProperty('--p', (p * 100).toFixed(1) + '%');
+  $('time').textContent = v.dur > 0 ? `${Math.min(st.T, v.dur).toFixed(1).replace('.', ',')} / ${v.dur} s` : 'vista fija'; }
+function go(si, vi, keepHash) {
+  st.si = (si + SC.length) % SC.length; const n = SC[st.si].views.length; st.vi = ((vi || 0) % n + n) % n; st.T = 0; st.hold = 0; st.dAz = 0; st.dEl = 0; st.zoom = 1; st.playing = true; st.dirty = true;
+  if (!keepHash) { const sc = scene(), h = '#' + sc.id + (st.vi ? '--' + view().id : ''); try { if (location.hash !== h) location.replace(h); } catch (e) { try { history.replaceState(null, '', h); } catch (e2) {} } }
+  syncUI();
+}
+function fromHash() {
+  let h = decodeURIComponent((location.hash || '').replace(/^#/, '')).trim(); if (OLD[h]) h = OLD[h]; if (!h) return false;
+  const [sid, vid] = h.split('--'); const si = SC.findIndex(s => s.id === sid); if (si < 0) return false;
+  const vi = vid ? Math.max(0, SC[si].views.findIndex(w => w.id === vid)) : 0; if (si === st.si && vi === st.vi && document.querySelector('.chip')) return true; go(si, vi, true); return true;
+}
+function buildIndex() {
+  const L = $('list'); L.innerHTML = '';
+  for (const cat of CATS) { const items = SC.map((s, i) => [s, i]).filter(([s]) => s.cat === cat); if (!items.length) continue;
+    const h = document.createElement('div'); h.className = 'cat'; h.textContent = cat; L.appendChild(h);
+    for (const [s, i] of items) { const b = document.createElement('button'); b.className = 'it'; b.dataset.i = i; b.innerHTML = `<b></b><span></span>`; b.querySelector('b').textContent = s.title; b.querySelector('span').textContent = s.views.map(w => w.name).join(' · ');
+      b.onclick = () => { go(i, 0); closePanels(); }; L.appendChild(b); } }
+}
+function openPanel(id) { closePanels(); $(id).classList.add('open'); $('scrim').classList.add('on'); }
+function closePanels() { ['idx', 'info'].forEach(i => $(i).classList.remove('open')); $('scrim').classList.remove('on'); }
+function toast(s) { const e = $('toast'); e.textContent = s; e.classList.add('on'); clearTimeout(e._t); e._t = setTimeout(() => e.classList.remove('on'), 2600); }
+
+// ---------------------------------------------------------------- imagen 4K
+function composite(type, q) { const c = document.createElement('canvas'); c.width = cvGL.width; c.height = cvGL.height; const x = c.getContext('2d'); x.drawImage(cvGL, 0, 0); x.drawImage(cvOV, 0, 0); return new Promise(r => c.toBlob(r, type, q)); }
+
+// ---------------------------------------------------------------- gestos
+(() => {
+  const stg = $('stage'), P = new Map(); let pinch0 = 0, z0 = 1, lastTap = 0;
+  stg.addEventListener('pointerdown', e => { stg.setPointerCapture(e.pointerId); P.set(e.pointerId, [e.clientX, e.clientY]); stg.classList.add('drag');
+    if (P.size === 2) { const [a, b] = [...P.values()]; pinch0 = Math.hypot(a[0] - b[0], a[1] - b[1]); z0 = st.zoom; }
+    const now = performance.now(); if (now - lastTap < 300 && P.size === 1) { st.dAz = st.dEl = 0; st.zoom = 1; st.dirty = true; } lastTap = now; });
+  stg.addEventListener('pointermove', e => { if (!P.has(e.pointerId)) return; const old = P.get(e.pointerId), nw = [e.clientX, e.clientY]; P.set(e.pointerId, nw);
+    if (P.size === 1 && scene().kind === '3d') { st.dAz -= (nw[0] - old[0]) * 0.0075; st.dEl += (nw[1] - old[1]) * 0.0065; st.dirty = true; }
+    else if (P.size === 2) { const [a, b] = [...P.values()]; const d = Math.hypot(a[0] - b[0], a[1] - b[1]); if (pinch0 > 0) { st.zoom = clamp(z0 * d / pinch0, 0.5, 4); st.dirty = true; } } });
+  const up = e => { P.delete(e.pointerId); if (!P.size) stg.classList.remove('drag'); if (P.size < 2) pinch0 = 0; };
+  stg.addEventListener('pointerup', up); stg.addEventListener('pointercancel', up);
+  stg.addEventListener('wheel', e => { e.preventDefault(); st.zoom = clamp(st.zoom * Math.exp(-e.deltaY * 0.0012), 0.5, 4); st.dirty = true; }, { passive: false });
+})();
+function bindUI() {
+  $('bIdx').onclick = () => openPanel('idx'); $('bInfo').onclick = () => openPanel('info'); $('scrim').onclick = closePanels; document.querySelectorAll('[data-close]').forEach(b => b.onclick = closePanels);
+  $('bHome').onclick = () => { st.dAz = st.dEl = 0; st.zoom = 1; st.T = 0; st.hold = 0; st.playing = true; st.dirty = true; setPlayIcon(); };
+  $('bFull').onclick = () => { const d = document; if (d.fullscreenElement) d.exitFullscreen(); else (d.documentElement.requestFullscreen ? d.documentElement.requestFullscreen() : Promise.reject()).catch(() => toast('Pantalla completa no disponible aquí')); };
+  $('play').onclick = () => { if (view().dur > 0 && st.T >= view().dur) { st.T = 0; st.hold = 0; } st.playing = !st.playing; setPlayIcon(); st.dirty = true; };
+  $('scrub').oninput = e => { const v = view(); if (v.dur > 0) { st.T = v.dur * e.target.value / 1000; st.hold = 0; st.playing = false; setPlayIcon(); st.dirty = true; syncTime(); } };
+  addEventListener('keydown', e => { if (e.key === ' ') { e.preventDefault(); $('play').click(); } else if (e.key === 'ArrowRight') go(st.si, st.vi + 1); else if (e.key === 'ArrowLeft') go(st.si, st.vi - 1);
+    else if (e.key === 'ArrowDown') go(st.si + 1, 0); else if (e.key === 'ArrowUp') go(st.si - 1, 0); else if (e.key === 'Escape') closePanels(); });
+  addEventListener('resize', resize); addEventListener('hashchange', fromHash);
+}
+
+// ---------------------------------------------------------------- bucle
+function tick(now) {
+  const dt = Math.min(0.1, (now - st.last) / 1000); st.last = now; const v = view();
+  if (st.playing) { if (v.dur > 0) { if (st.T < v.dur) st.T = Math.min(v.dur, st.T + dt); else { st.hold += dt; if (st.hold > 2.4) { st.T = 0; st.hold = 0; } } } else st.T += dt; st.dirty = true; }
+  if (st.dirty) { draw(); syncTime(); st.dirty = false; }
+  requestAnimationFrame(tick);
+}
+
+// ---------------------------------------------------------------- exportación (uso local)
+async function runExport() {
+  document.body.classList.add('export'); const W = +Q.get('w') || 3840, H = +Q.get('h') || 2160; for (const c of [cvGL, cvOV]) { c.width = W; c.height = H; }
+  if (Q.get('stills')) { const only = Q.get('stills') === 'all' ? null : Q.get('stills').split(',');
+    for (let a = 0; a < SC.length; a++) for (let b = 0; b < SC[a].views.length; b++) { const nm = SC[a].id + '--' + SC[a].views[b].id; if (only && !only.includes(nm)) continue;
+      st.si = a; st.vi = b; frameKey = ''; const w = view(); st.T = w.dur > 0 ? w.dur * (w.still != null ? w.still : 0.88) : 3; if (w.fit === 'frame') { delete camCache[a + ':' + b]; draw(); } draw();
+      await fetch('/frame?name=' + nm, { method: 'POST', body: await composite('image/png') }); }
+    await fetch('/done', { method: 'POST' }); return; }
+  const si = SC.findIndex(s => s.id === Q.get('scene')), sc = SC[si], vi = Math.max(0, sc.views.findIndex(w => w.id === Q.get('view'))); st.si = si; st.vi = vi;
+  const v = view(), fps = +Q.get('fps') || 30, lead = +(Q.get('lead') || 0.5), hold = +(Q.get('hold') || 1.5), still = Q.get('still');
+  if (still != null) { st.T = v.dur > 0 ? v.dur * +still : 0; draw(); await fetch('/frame?n=0', { method: 'POST', body: await composite('image/png') }); await fetch('/done', { method: 'POST' }); return; }
+  const len = v.dur > 0 ? v.dur : +(Q.get('len') || 12), N = Math.round((len + lead + hold) * fps);
+  for (let i = 0; i < N; i++) { const tt = i / fps - lead; st.T = v.dur > 0 ? clamp(tt, 0, v.dur) : Math.max(0, tt); draw();
+    const b = await composite('image/jpeg', 0.93); await fetch('/frame?n=' + i, { method: 'POST', body: b }); }
+  await fetch('/done', { method: 'POST' });
+}
+
+// ---------------------------------------------------------------- inicio
+if (EXPORT) { runExport().catch(e => fetch('/error', { method: 'POST', body: String(e && e.stack || e) })); }
+else {
+  buildIndex(); bindUI(); resize();
+  if (!fromHash()) { go(0, 0, true); if (!location.hash) setTimeout(() => openPanel('idx'), 600); }
+  if (Q.get('t') != null) { const v = view(); st.T = v.dur > 0 ? v.dur * +Q.get('t') : 0; st.playing = false; }
+  syncUI(); requestAnimationFrame(tick);
+}
+
+</script>
+</body>
+</html>
